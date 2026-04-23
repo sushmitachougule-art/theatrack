@@ -9,46 +9,44 @@ runConfig:
   concurrency: 100
 
 env:
-  # All NEXT_PUBLIC_* vars are needed at both BUILD and RUNTIME.
-  # Set these in the Firebase Console:
-  #   App Hosting → <backend> → Environment variables
-  # or via: firebase apphosting:config:set env
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyDMaFMqPfZM9310zFTeqUV9bekS5KrT05s
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: theatrack-9016c.firebaseapp.com
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: theatrack-9016c
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: theatrack-9016c.firebasestorage.app
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "592799304000"
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:592799304000:web:ac8fb96dba8c00caa792a5
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_VAPID_KEY
+    value: G-15G8L6WTFT
     availability:
       - BUILD
       - RUNTIME
