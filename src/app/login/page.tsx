@@ -7,7 +7,7 @@ import {
   signInWithGoogle,
   signInWithEmail,
   registerWithEmail,
-  signInAnonymously,
+  signInAsDemo,
 } from "@/lib/firebase/auth";
 import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";
@@ -43,7 +43,7 @@ export default function LoginPage() {
   const handleDemoLogin = async () => {
     try {
       setSubmitting(true);
-      const user = await signInAnonymously();
+      const user = await signInAsDemo();
       await seedDemoAccount(user.uid);
       toast.success("Welcome to the Demo!");
       router.push("/dashboard");
