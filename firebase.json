@@ -2,5 +2,18 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
-  }
+  },
+  "apphosting": [
+    {
+      "backendId": "theatrack",
+      "ignore": {
+        "files": [
+          "firebase.json",
+          "**/.git/**",
+          "**/node_modules/**",
+          "**/.next/**"
+        ]
+      }
+    }
+  ]
 }
