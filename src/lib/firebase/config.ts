@@ -2,14 +2,16 @@
 // PawShield — Firebase Client Configuration
 // ============================================
 
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
 import {
+  initializeFirestore,
   getFirestore,
   Firestore,
-  enableIndexedDbPersistence,
-} from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,25 +24,28 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase (avoid re-initialization in dev hot-reload)
-const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const app: FirebaseApp =
+  getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 // Auth
 const auth: Auth = getAuth(app);
 
-// Firestore
-const db: Firestore = getFirestore(app);
-
-// Enable offline persistence (client-side only)
-if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open — persistence can only be enabled in one tab at a time
-      console.warn('Firestore persistence failed: multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      // The current browser does not support persistence
-      console.warn('Firestore persistence not supported in this browser');
-    }
-  });
+// Firestore — use modern persistence API (replaces deprecated enableIndexedDbPersistence)
+let db: Firestore;
+if (getApps().length > 1 || typeof window === "undefined") {
+  // SSR or already initialized — use getFirestore
+  db = getFirestore(app);
+} else {
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    // Already initialized (e.g. hot-reload) — fall back to getFirestore
+    db = getFirestore(app);
+  }
 }
 
 // Storage
