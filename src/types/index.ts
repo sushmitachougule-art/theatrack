@@ -3,8 +3,8 @@
 // ============================================
 
 // --- User ---
-export type UserRole = 'owner' | 'admin' | 'vet';
-export type UserPlan = 'free' | 'pro';
+export type UserRole = "owner" | "admin" | "vet";
+export type UserPlan = "free" | "pro";
 
 export interface UserProfile {
   uid: string;
@@ -20,22 +20,22 @@ export interface UserProfile {
 
 export interface UserSettings {
   notificationsEnabled: boolean;
-  reminderDaysBefore: number[];  // e.g. [7, 3, 1]
+  reminderDaysBefore: number[]; // e.g. [7, 3, 1]
   darkMode: boolean;
   timezone: string;
 }
 
 // --- Dog ---
-export type DogGender = 'male' | 'female';
+export type DogGender = "male" | "female";
 
 export interface Dog {
   id: string;
   ownerId: string;
   name: string;
   breed: string;
-  dateOfBirth: string;          // ISO date
+  dateOfBirth: string; // ISO date
   gender: DogGender;
-  weight: number | null;        // kg
+  weight: number | null; // kg
   color: string;
   microchipNumber: string;
   insuranceProvider: string;
@@ -45,14 +45,14 @@ export interface Dog {
   emergencyVetPhone: string;
   photoUrl: string | null;
   isActive: boolean;
-  sharedWith: string[];         // userIds
+  sharedWith: string[]; // userIds
   notes: string;
   createdAt: string;
   updatedAt: string;
 }
 
 // --- Vaccination Type ---
-export type VaccinationCategory = 'core' | 'non-core' | 'preventive' | 'custom';
+export type VaccinationCategory = "core" | "non-core" | "preventive" | "custom";
 
 export interface VaccinationType {
   id: string;
@@ -63,19 +63,23 @@ export interface VaccinationType {
   firstDoseMinAgeDays: number;
   breedSpecific: string[] | null;
   isSystem: boolean;
-  createdBy: string;           // userId or 'system'
+  createdBy: string; // userId or 'system'
   isActive: boolean;
 }
 
 // --- Vaccination Record ---
-export type VaccinationStatus = 'completed' | 'scheduled' | 'missed' | 'skipped';
+export type VaccinationStatus =
+  | "completed"
+  | "scheduled"
+  | "missed"
+  | "skipped";
 
 export interface VaccinationRecord {
   id: string;
   dogId: string;
   ownerId: string;
   vaccinationTypeId: string;
-  vaccinationTypeName: string;  // denormalized for display
+  vaccinationTypeName: string; // denormalized for display
   dateAdministered: string;
   nextDueDate: string;
   customIntervalDays: number | null;
@@ -95,7 +99,13 @@ export interface VaccinationRecord {
 }
 
 // --- Health Record ---
-export type HealthRecordType = 'vet_visit' | 'weight' | 'allergy' | 'surgery' | 'medication' | 'other';
+export type HealthRecordType =
+  | "vet_visit"
+  | "weight"
+  | "allergy"
+  | "surgery"
+  | "medication"
+  | "other";
 
 export interface HealthRecord {
   id: string;
@@ -112,7 +122,7 @@ export interface HealthRecord {
 }
 
 // --- Reminder ---
-export type ReminderType = '7day' | '3day' | '1day' | 'overdue';
+export type ReminderType = "7day" | "3day" | "1day" | "overdue";
 
 export interface Reminder {
   id: string;
@@ -132,27 +142,27 @@ export interface Reminder {
 
 // --- Admin Audit Log ---
 export type AdminAction =
-  | 'user_suspended'
-  | 'user_role_changed'
-  | 'vaccination_type_created'
-  | 'vaccination_type_updated'
-  | 'vaccination_type_deleted'
-  | 'broadcast_sent'
-  | 'user_deleted';
+  | "user_suspended"
+  | "user_role_changed"
+  | "vaccination_type_created"
+  | "vaccination_type_updated"
+  | "vaccination_type_deleted"
+  | "broadcast_sent"
+  | "user_deleted";
 
 export interface AuditLog {
   id: string;
   adminId: string;
   adminEmail: string;
   action: AdminAction;
-  targetType: 'user' | 'vaccination_type' | 'notification';
+  targetType: "user" | "vaccination_type" | "notification";
   targetId: string;
   details: string;
   timestamp: string;
 }
 
 // --- UI Helpers ---
-export type StatusColor = 'green' | 'yellow' | 'red' | 'gray';
+export type StatusColor = "green" | "yellow" | "red" | "gray";
 
 export interface VaccinationStatusInfo {
   status: StatusColor;
@@ -205,9 +215,9 @@ export interface Feedback {
   id: string;
   userId: string;
   userEmail?: string;
-  type: 'bug' | 'feature' | 'other';
+  type: "bug" | "feature" | "other";
   message: string;
-  status: 'new' | 'reviewed' | 'resolved';
+  status: "new" | "in-progress" | "reviewed" | "resolved";
   createdAt: string;
 }
 
@@ -215,7 +225,7 @@ export interface SystemNotification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'warning' | 'success';
+  type: "info" | "warning" | "success";
   isActive: boolean;
   createdAt: string;
   createdBy: string;

@@ -91,10 +91,11 @@ service cloud.firestore {
       allow create: if isAdmin();
     }
 
-    // Feedback — anyone can create, admin can read/update
+    // Feedback — anyone can create, users can read their own, admin can read/update/delete
     match /feedback/{feedbackId} {
       allow create: if isAuth();
-      allow read, update, delete: if isAdmin();
+      allow read: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
     }
 
     // Notifications — admin can read/write, users can read

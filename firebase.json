@@ -6,14 +6,13 @@
   "apphosting": [
     {
       "backendId": "theatrack",
-      "ignore": {
-        "files": [
-          "firebase.json",
-          "**/.git/**",
-          "**/node_modules/**",
-          "**/.next/**"
-        ]
-      }
+      "ignore": [
+        "firebase.json",
+        "**/.git/**",
+        "**/node_modules/**",
+        "**/.next/**"
+      ],
+      "alwaysDeployFromSource": true
     }
   ]
 }

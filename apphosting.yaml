@@ -50,3 +50,14 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_VAPID_KEY
+    secret: firebase_vapid_key
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: FIREBASE_ADMIN_CREDENTIALS
+    secret: firebase_admin_credentials
+    availability:
+      - RUNTIME

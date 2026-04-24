@@ -35,6 +35,7 @@ import {
 } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { calculateNextDueDate, toISOString } from "@/lib/utils/dateUtils";
+import { compressImage } from "@/lib/utils/imageUtils";
 
 // =====================
 // Dog Repository
@@ -47,8 +48,13 @@ export async function createDog(
   let photoUrl: string | null = null;
 
   if (data.photo) {
+    const compressed = await compressImage(data.photo, {
+      maxWidthPx: 600,
+      maxHeightPx: 600,
+      quality: 0.72,
+    });
     const photoRef = ref(storage, `dogs/${ownerId}/${uuidv4()}`);
-    await uploadBytes(photoRef, data.photo);
+    await uploadBytes(photoRef, compressed);
     photoUrl = await getDownloadURL(photoRef);
   }
 
@@ -90,8 +96,13 @@ export async function updateDog(
 
   // Handle photo upload if new photo provided
   if (data.photo) {
+    const compressed = await compressImage(data.photo, {
+      maxWidthPx: 600,
+      maxHeightPx: 600,
+      quality: 0.72,
+    });
     const photoRef = ref(storage, `dogs/${ownerId}/${uuidv4()}`);
-    await uploadBytes(photoRef, data.photo);
+    await uploadBytes(photoRef, compressed);
     updateData.photoUrl = await getDownloadURL(photoRef);
     delete updateData.photo;
   } else {
@@ -189,11 +200,18 @@ export async function createVaccinationRecord(
   let certificateUrl: string | null = null;
 
   if (data.certificate) {
+    // Compress image certificates; PDFs pass through untouched
+    const compressed = await compressImage(data.certificate, {
+      maxWidthPx: 1200,
+      maxHeightPx: 1600,
+      quality: 0.78,
+      maxSizeBytes: 500 * 1024,
+    });
     const certRef = ref(
       storage,
       `certificates/${ownerId}/${dogId}/${uuidv4()}`,
     );
-    await uploadBytes(certRef, data.certificate);
+    await uploadBytes(certRef, compressed);
     certificateUrl = await getDownloadURL(certRef);
   }
 
@@ -400,6 +418,31 @@ export function subscribeToAllFeedback(
 
 export async function resolveFeedback(feedbackId: string) {
   await updateDoc(doc(db, "feedback", feedbackId), { status: "resolved" });
+}
+
+export async function updateFeedbackStatus(
+  feedbackId: string,
+  status: "new" | "in-progress" | "reviewed" | "resolved",
+) {
+  await updateDoc(doc(db, "feedback", feedbackId), { status });
+}
+
+export async function deleteFeedback(feedbackId: string) {
+  await deleteDoc(doc(db, "feedback", feedbackId));
+}
+
+export function subscribeToUserFeedback(
+  userId: string,
+  callback: (feedback: Feedback[]) => void,
+) {
+  const q = query(
+    collection(db, "feedback"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc"),
+  );
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Feedback));
+  });
 }
 
 export async function createNotification(

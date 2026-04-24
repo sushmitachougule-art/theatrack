@@ -8,6 +8,7 @@ import {
   signInWithEmail,
   registerWithEmail,
   signInAsDemo,
+  getAuthErrorMessage,
 } from "@/lib/firebase/auth";
 import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";
@@ -34,7 +35,7 @@ export default function LoginPage() {
       toast.success("Welcome to PawShield!");
       router.push("/dashboard");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Sign in failed");
+      toast.error(getAuthErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +49,7 @@ export default function LoginPage() {
       toast.success("Welcome to the Demo!");
       router.push("/dashboard");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Demo login failed");
+      toast.error(getAuthErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -67,7 +68,7 @@ export default function LoginPage() {
       }
       router.push("/dashboard");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Authentication failed");
+      toast.error(getAuthErrorMessage(err));
     } finally {
       setSubmitting(false);
     }

@@ -1,43 +1,188 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, use } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import AppLayout from '@/components/layout/AppLayout';
-import { useAuth } from '@/hooks/useAuth';
-import { useVaccinationRecords, useVaccinationTypes } from '@/hooks/useVaccinations';
-import { getDog, createVaccinationRecord, deleteVaccinationRecord, deleteDog } from '@/lib/repositories';
-import { Dog, VaccinationFormData } from '@/types';
-import { getVaccinationStatus, formatDate, getDogAge } from '@/lib/utils/dateUtils';
+import React, { useState, useEffect, use, useRef } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import AppLayout from "@/components/layout/AppLayout";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  ArrowLeft, Plus, Syringe, Trash2, CheckCircle, Clock, AlertTriangle,
-  FileText, Download, Shield, Phone, X,
-} from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+  useVaccinationRecords,
+  useVaccinationTypes,
+} from "@/hooks/useVaccinations";
+import {
+  getDog,
+  createVaccinationRecord,
+  deleteVaccinationRecord,
+  deleteDog,
+} from "@/lib/repositories";
+import { Dog, VaccinationFormData, VaccinationRecord } from "@/types";
+import {
+  getVaccinationStatus,
+  formatDate,
+  getDogAge,
+} from "@/lib/utils/dateUtils";
+import {
+  ArrowLeft,
+  Plus,
+  Syringe,
+  Trash2,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  FileText,
+  Download,
+  Shield,
+  Phone,
+  X,
+  Camera,
+  Eye,
+} from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
-function VaccinationModal({ dogId, ownerId, onClose }: { dogId: string; ownerId: string; onClose: () => void }) {
+// ─── Certificate Preview Lightbox ─────────────────────────────────────────
+function CertificatePreviewModal({
+  url,
+  onClose,
+}: {
+  url: string;
+  onClose: () => void;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl animate-scale-in"
+        style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: "1px solid var(--border-color)" }}
+        >
+          <p
+            className="font-semibold text-sm"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Vaccination Certificate
+          </p>
+          <div className="flex items-center gap-2">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
+              style={{
+                background: "rgba(245,158,11,0.1)",
+                color: "var(--color-primary)",
+                border: "1px solid rgba(245,158,11,0.2)",
+              }}
+            >
+              <Download size={13} /> Open / Download
+            </a>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="p-4 flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-auto">
+          {imgError ? (
+            <div className="text-center py-10 space-y-3">
+              <FileText
+                size={48}
+                style={{ color: "var(--text-muted)" }}
+                className="mx-auto"
+              />
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                PDF or non-image certificate
+              </p>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary inline-flex items-center gap-2 text-sm"
+              >
+                <Download size={14} /> Open Certificate
+              </a>
+            </div>
+          ) : (
+            <div className="relative w-full" style={{ minHeight: 200 }}>
+              <img
+                src={url}
+                alt="Vaccination Certificate"
+                className="w-full h-auto rounded-xl object-contain"
+                style={{ maxHeight: "60vh" }}
+                onError={() => setImgError(true)}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Vaccination Modal ─────────────────────────────────────────────────────
+function VaccinationModal({
+  dogId,
+  ownerId,
+  onClose,
+}: {
+  dogId: string;
+  ownerId: string;
+  onClose: () => void;
+}) {
   const { types } = useVaccinationTypes();
   const [form, setForm] = useState<VaccinationFormData>({
-    vaccinationTypeId: '', dateAdministered: '', customIntervalDays: null,
-    vetName: '', clinicName: '', batchNumber: '', manufacturer: '',
-    sideEffectsNoted: false, sideEffectsNotes: '', cost: null, certificate: null,
+    vaccinationTypeId: "",
+    dateAdministered: "",
+    customIntervalDays: null,
+    vetName: "",
+    clinicName: "",
+    batchNumber: "",
+    manufacturer: "",
+    sideEffectsNoted: false,
+    sideEffectsNotes: "",
+    cost: null,
+    certificate: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [certFileName, setCertFileName] = useState<string | null>(null);
+  const certInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedType = types.find((t) => t.id === form.vaccinationTypeId);
-    if (!selectedType) return toast.error('Please select a vaccination type');
+    if (!selectedType) return toast.error("Please select a vaccination type");
     try {
       setSubmitting(true);
-      await createVaccinationRecord(dogId, ownerId, form, selectedType.name, selectedType.defaultIntervalDays);
-      toast.success('Vaccination record added!');
+      await createVaccinationRecord(
+        dogId,
+        ownerId,
+        form,
+        selectedType.name,
+        selectedType.defaultIntervalDays,
+      );
+      toast.success("Vaccination record added!");
       onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add record');
+      toast.error(err instanceof Error ? err.message : "Failed to add record");
     } finally {
       setSubmitting(false);
     }
@@ -47,19 +192,40 @@ function VaccinationModal({ dogId, ownerId, onClose }: { dogId: string; ownerId:
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Add Vaccination Record</h2>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)' }}><X size={20} /></button>
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Add Vaccination Record
+          </h2>
+          <button onClick={onClose} style={{ color: "var(--text-muted)" }}>
+            <X size={20} />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="form-label">Vaccination Type *</label>
-            <select className="form-select" value={form.vaccinationTypeId} onChange={(e) => setForm((p) => ({ ...p, vaccinationTypeId: e.target.value }))} required>
+            <select
+              className="form-select"
+              value={form.vaccinationTypeId}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, vaccinationTypeId: e.target.value }))
+              }
+              required
+            >
               <option value="">Select vaccination</option>
-              {['core', 'non-core', 'preventive', 'custom'].map((cat) => {
+              {["core", "non-core", "preventive", "custom"].map((cat) => {
                 const catTypes = types.filter((t) => t.category === cat);
                 return catTypes.length > 0 ? (
-                  <optgroup key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)}>
-                    {catTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  <optgroup
+                    key={cat}
+                    label={cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  >
+                    {catTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
                   </optgroup>
                 ) : null;
               })}
@@ -68,35 +234,211 @@ function VaccinationModal({ dogId, ownerId, onClose }: { dogId: string; ownerId:
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="form-label">Date Administered *</label>
-              <input type="date" className="form-input" value={form.dateAdministered} onChange={(e) => setForm((p) => ({ ...p, dateAdministered: e.target.value }))} required />
+              <input
+                type="date"
+                className="form-input"
+                value={form.dateAdministered}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, dateAdministered: e.target.value }))
+                }
+                required
+              />
             </div>
             <div>
               <label className="form-label">Custom Interval (days)</label>
-              <input type="number" className="form-input" placeholder="Leave blank for default" value={form.customIntervalDays || ''} onChange={(e) => setForm((p) => ({ ...p, customIntervalDays: e.target.value ? parseInt(e.target.value) : null }))} />
+              <input
+                type="number"
+                className="form-input"
+                placeholder="Leave blank for default"
+                value={form.customIntervalDays || ""}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    customIntervalDays: e.target.value
+                      ? parseInt(e.target.value)
+                      : null,
+                  }))
+                }
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="form-label">Vet Name</label><input className="form-input" value={form.vetName} onChange={(e) => setForm((p) => ({ ...p, vetName: e.target.value }))} /></div>
-            <div><label className="form-label">Clinic Name</label><input className="form-input" value={form.clinicName} onChange={(e) => setForm((p) => ({ ...p, clinicName: e.target.value }))} /></div>
+            <div>
+              <label className="form-label">Vet Name</label>
+              <input
+                className="form-input"
+                value={form.vetName}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, vetName: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="form-label">Clinic Name</label>
+              <input
+                className="form-input"
+                value={form.clinicName}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, clinicName: e.target.value }))
+                }
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="form-label">Batch Number</label><input className="form-input" value={form.batchNumber} onChange={(e) => setForm((p) => ({ ...p, batchNumber: e.target.value }))} /></div>
-            <div><label className="form-label">Cost (₹)</label><input type="number" className="form-input" value={form.cost || ''} onChange={(e) => setForm((p) => ({ ...p, cost: e.target.value ? parseFloat(e.target.value) : null }))} /></div>
+            <div>
+              <label className="form-label">Batch Number</label>
+              <input
+                className="form-input"
+                value={form.batchNumber}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, batchNumber: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className="form-label">Cost (₹)</label>
+              <input
+                type="number"
+                className="form-input"
+                value={form.cost || ""}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    cost: e.target.value ? parseFloat(e.target.value) : null,
+                  }))
+                }
+              />
+            </div>
           </div>
           <div>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.sideEffectsNoted} onChange={(e) => setForm((p) => ({ ...p, sideEffectsNoted: e.target.checked }))} className="accent-amber-500" />
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Side effects noted</span>
+              <input
+                type="checkbox"
+                checked={form.sideEffectsNoted}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sideEffectsNoted: e.target.checked }))
+                }
+                className="accent-amber-500"
+              />
+              <span
+                className="text-sm"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Side effects noted
+              </span>
             </label>
             {form.sideEffectsNoted && (
-              <textarea className="form-input mt-2" rows={2} placeholder="Describe side effects..." value={form.sideEffectsNotes} onChange={(e) => setForm((p) => ({ ...p, sideEffectsNotes: e.target.value }))} />
+              <textarea
+                className="form-input mt-2"
+                rows={2}
+                placeholder="Describe side effects..."
+                value={form.sideEffectsNotes}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, sideEffectsNotes: e.target.value }))
+                }
+              />
             )}
           </div>
+
+          {/* Certificate upload */}
+          <div>
+            <label className="form-label">
+              Vaccination Certificate (optional)
+            </label>
+            <div
+              className="flex items-center gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition-all hover:border-amber-500/40"
+              style={{
+                borderColor: certFileName
+                  ? "rgba(245,158,11,0.4)"
+                  : "var(--border-color)",
+                background: "var(--bg-input)",
+              }}
+              onClick={() => certInputRef.current?.click()}
+            >
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(245,158,11,0.1)" }}
+              >
+                <Camera size={16} style={{ color: "var(--color-primary)" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                {certFileName ? (
+                  <>
+                    <p
+                      className="text-xs font-medium truncate"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {certFileName}
+                    </p>
+                    <p
+                      className="text-[10px]"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      Tap to change
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      Upload certificate photo or PDF
+                    </p>
+                    <p
+                      className="text-[10px]"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      JPG, PNG or PDF · Max 5MB
+                    </p>
+                  </>
+                )}
+              </div>
+              {certFileName && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setForm((p) => ({ ...p, certificate: null }));
+                    setCertFileName(null);
+                    if (certInputRef.current) certInputRef.current.value = "";
+                  }}
+                  style={{ color: "#f87171" }}
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            <input
+              ref={certInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                  toast.error("File must be under 5MB");
+                  return;
+                }
+                setForm((p) => ({ ...p, certificate: file }));
+                setCertFileName(file.name);
+              }}
+            />
+          </div>
+
           <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={submitting} className="btn-primary flex-1">
-              {submitting ? 'Saving...' : '💉 Save Record'}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary flex-1"
+            >
+              {submitting ? "Saving..." : "💉 Save Record"}
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+            <button type="button" onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
           </div>
         </form>
       </div>
@@ -111,91 +453,149 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
   const [dog, setDog] = useState<Dog | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const { records, loading: recsLoading } = useVaccinationRecords(resolvedParams.dogId);
+  const [certPreviewUrl, setCertPreviewUrl] = useState<string | null>(null);
+  const { records, loading: recsLoading } = useVaccinationRecords(
+    resolvedParams.dogId,
+  );
 
   useEffect(() => {
-    getDog(resolvedParams.dogId).then((d) => { setDog(d); setLoading(false); });
+    getDog(resolvedParams.dogId).then((d) => {
+      setDog(d);
+      setLoading(false);
+    });
   }, [resolvedParams.dogId]);
 
   const handleDeleteRecord = async (id: string) => {
-    if (!confirm('Delete this vaccination record?')) return;
+    if (!confirm("Delete this vaccination record?")) return;
     try {
       await deleteVaccinationRecord(id);
-      toast.success('Record deleted');
-    } catch { toast.error('Failed to delete'); }
+      toast.success("Record deleted");
+    } catch {
+      toast.error("Failed to delete");
+    }
   };
 
   const handleDeleteDog = async () => {
-    if (!confirm(`Are you sure you want to delete ${dog?.name}? This cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete ${dog?.name}? This cannot be undone.`,
+      )
+    )
+      return;
     try {
       await deleteDog(resolvedParams.dogId);
-      toast.success('Dog removed');
-      router.push('/dogs');
-    } catch { toast.error('Failed to delete'); }
+      toast.success("Dog removed");
+      router.push("/dogs");
+    } catch {
+      toast.error("Failed to delete");
+    }
   };
 
   const handleExportPDF = () => {
     if (!dog) return;
     const doc = new jsPDF();
-    
+
     // Header
     doc.setFontSize(20);
     doc.text(`Vaccination Record: ${dog.name}`, 14, 22);
-    
+
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Breed: ${dog.breed} | Age: ${getDogAge(dog.dateOfBirth)} | Gender: ${dog.gender}`, 14, 30);
-    if (dog.microchipNumber) doc.text(`Microchip: ${dog.microchipNumber}`, 14, 36);
+    doc.text(
+      `Breed: ${dog.breed} | Age: ${getDogAge(dog.dateOfBirth)} | Gender: ${dog.gender}`,
+      14,
+      30,
+    );
+    if (dog.microchipNumber)
+      doc.text(`Microchip: ${dog.microchipNumber}`, 14, 36);
 
     // Table
-    const tableData = records.map(r => [
+    const tableData = records.map((r) => [
       r.vaccinationTypeName,
       formatDate(r.dateAdministered),
       formatDate(r.nextDueDate),
-      r.vetName || 'N/A',
-      r.status
+      r.vetName || "N/A",
+      r.status,
     ]);
 
     autoTable(doc, {
       startY: 45,
-      head: [['Vaccine', 'Date Given', 'Next Due', 'Vet/Clinic', 'Status']],
+      head: [["Vaccine", "Date Given", "Next Due", "Vet/Clinic", "Status"]],
       body: tableData,
-      theme: 'grid',
-      headStyles: { fillColor: [245, 158, 11] }
+      theme: "grid",
+      headStyles: { fillColor: [245, 158, 11] },
     });
 
     doc.save(`${dog.name}-vaccinations.pdf`);
-    toast.success('PDF Exported!');
+    toast.success("PDF Exported!");
   };
 
-  if (loading) return <div className="flex justify-center py-20"><div className="spinner" /></div>;
-  if (!dog) return <div className="text-center py-20" style={{ color: 'var(--text-muted)' }}>Dog not found</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+  if (!dog)
+    return (
+      <div className="text-center py-20" style={{ color: "var(--text-muted)" }}>
+        Dog not found
+      </div>
+    );
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Link href="/dogs" className="flex items-center gap-2 text-sm hover:underline" style={{ color: 'var(--text-muted)' }}>
+      <Link
+        href="/dogs"
+        className="flex items-center gap-2 text-sm hover:underline"
+        style={{ color: "var(--text-muted)" }}
+      >
         <ArrowLeft size={16} /> Back to My Dogs
       </Link>
 
       {/* Profile card */}
-      <div className="glass-card p-6" style={{ cursor: 'default' }}>
+      <div className="glass-card p-6" style={{ cursor: "default" }}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
-            style={{ background: 'rgba(245,158,11,0.15)' }}>
-            {dog.photoUrl ? <Image src={dog.photoUrl} alt={dog.name} width={64} height={64} className="w-full h-full rounded-xl object-cover" /> : '🐕'}
+          <div
+            className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
+            style={{ background: "rgba(245,158,11,0.15)" }}
+          >
+            {dog.photoUrl ? (
+              <Image
+                src={dog.photoUrl}
+                alt={dog.name}
+                width={64}
+                height={64}
+                className="w-full h-full rounded-xl object-cover"
+              />
+            ) : (
+              "🐕"
+            )}
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{dog.name}</h1>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {dog.breed} · {getDogAge(dog.dateOfBirth)} · {dog.gender === 'male' ? '♂ Male' : '♀ Female'}
-              {dog.weight ? ` · ${dog.weight}kg` : ''}
+            <h1
+              className="text-2xl font-bold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {dog.name}
+            </h1>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              {dog.breed} · {getDogAge(dog.dateOfBirth)} ·{" "}
+              {dog.gender === "male" ? "♂ Male" : "♀ Female"}
+              {dog.weight ? ` · ${dog.weight}kg` : ""}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <button onClick={handleExportPDF} className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2">
+            <button
+              onClick={handleExportPDF}
+              className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2"
+            >
               <Download size={14} /> Export PDF
             </button>
-            <button onClick={handleDeleteDog} className="btn-danger flex items-center justify-center gap-2 text-sm px-3 py-2">
+            <button
+              onClick={handleDeleteDog}
+              className="btn-danger flex items-center justify-center gap-2 text-sm px-3 py-2"
+            >
               <Trash2 size={14} /> Delete
             </button>
           </div>
@@ -204,40 +604,225 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
         {/* Info chips */}
         <div className="flex flex-wrap gap-2 text-xs">
           {dog.microchipNumber && (
-            <span className="px-3 py-1.5 rounded-lg flex items-center gap-1.5" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+            <span
+              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+              style={{
+                background: "var(--bg-input)",
+                border: "1px solid var(--border-color)",
+                color: "var(--text-secondary)",
+              }}
+            >
               <Shield size={12} /> Microchip: {dog.microchipNumber}
             </span>
           )}
           {dog.emergencyVetPhone && (
-            <span className="px-3 py-1.5 rounded-lg flex items-center gap-1.5" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
-              <Phone size={12} /> Emergency: {dog.emergencyVetName} ({dog.emergencyVetPhone})
+            <span
+              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+              style={{
+                background: "var(--bg-input)",
+                border: "1px solid var(--border-color)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <Phone size={12} /> Emergency: {dog.emergencyVetName} (
+              {dog.emergencyVetPhone})
             </span>
           )}
           {dog.insuranceProvider && (
-            <span className="px-3 py-1.5 rounded-lg flex items-center gap-1.5" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+            <span
+              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+              style={{
+                background: "var(--bg-input)",
+                border: "1px solid var(--border-color)",
+                color: "var(--text-secondary)",
+              }}
+            >
               <FileText size={12} /> Insurance: {dog.insuranceProvider}
             </span>
           )}
         </div>
       </div>
 
+      {/* Health summary */}
+      {!recsLoading &&
+        records.length > 0 &&
+        (() => {
+          const completed = records.filter((r) => r.status === "completed");
+          const overdue = completed.filter(
+            (r) => getVaccinationStatus(r.nextDueDate).status === "red",
+          ).length;
+          const dueSoon = completed.filter(
+            (r) => getVaccinationStatus(r.nextDueDate).status === "yellow",
+          ).length;
+          const upToDate = completed.filter(
+            (r) => getVaccinationStatus(r.nextDueDate).status === "green",
+          ).length;
+          const total = completed.length;
+          const score = total === 0 ? 0 : Math.round((upToDate / total) * 100);
+          const totalSpend = completed.reduce((s, r) => s + (r.cost || 0), 0);
+          const scoreColor =
+            score >= 80 ? "#34d399" : score >= 50 ? "#fbbf24" : "#f87171";
+
+          return (
+            <div className="glass-card p-5" style={{ cursor: "default" }}>
+              <h3
+                className="text-sm font-semibold mb-4 flex items-center gap-2"
+                style={{ color: "var(--text-primary)" }}
+              >
+                <Shield size={15} style={{ color: "var(--color-primary)" }} />{" "}
+                Health Overview
+              </h3>
+
+              {/* Stat row */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {[
+                  { label: "Up to Date", val: upToDate, color: "#34d399" },
+                  { label: "Due Soon", val: dueSoon, color: "#fbbf24" },
+                  { label: "Overdue", val: overdue, color: "#f87171" },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-xl p-3 text-center"
+                    style={{
+                      background: "var(--bg-input)",
+                      border: "1px solid var(--border-color)",
+                    }}
+                  >
+                    <p
+                      className="text-xl font-extrabold"
+                      style={{ color: s.color }}
+                    >
+                      {s.val}
+                    </p>
+                    <p
+                      className="text-[10px] mt-0.5"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {s.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Protection bar */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span style={{ color: "var(--text-muted)" }}>
+                    Protection Level
+                  </span>
+                  <span className="font-bold" style={{ color: scoreColor }}>
+                    {score}%
+                  </span>
+                </div>
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  style={{ background: "var(--bg-input)" }}
+                >
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${score}%`, background: scoreColor }}
+                  />
+                </div>
+              </div>
+
+              {/* Segmented bar */}
+              {total > 0 && (
+                <div
+                  className="flex rounded-full overflow-hidden h-1.5 mb-3"
+                  style={{ background: "var(--bg-input)" }}
+                >
+                  {upToDate > 0 && (
+                    <div
+                      style={{
+                        width: `${(upToDate / total) * 100}%`,
+                        background: "#34d399",
+                      }}
+                    />
+                  )}
+                  {dueSoon > 0 && (
+                    <div
+                      style={{
+                        width: `${(dueSoon / total) * 100}%`,
+                        background: "#fbbf24",
+                      }}
+                    />
+                  )}
+                  {overdue > 0 && (
+                    <div
+                      style={{
+                        width: `${(overdue / total) * 100}%`,
+                        background: "#f87171",
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div
+                className="flex items-center justify-between text-xs"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <span>
+                  {total} record{total !== 1 ? "s" : ""} total
+                </span>
+                {totalSpend > 0 && (
+                  <span>
+                    Total spend:{" "}
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      ₹{totalSpend.toLocaleString()}
+                    </span>
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
       {/* Vaccination records */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Vaccination Records</h2>
-          <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2 text-sm">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Vaccination Records
+          </h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn-primary flex items-center gap-2 text-sm"
+          >
             <Plus size={14} /> Add Record
           </button>
         </div>
 
         {recsLoading ? (
-          <div className="flex justify-center py-8"><div className="spinner" /></div>
+          <div className="flex justify-center py-8">
+            <div className="spinner" />
+          </div>
         ) : records.length === 0 ? (
-          <div className="glass-card p-8 text-center" style={{ cursor: 'default' }}>
-            <Syringe size={32} className="mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>No vaccination records yet</p>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Add the first vaccination to start tracking schedules.</p>
-            <button onClick={() => setShowModal(true)} className="btn-primary inline-flex items-center gap-2 text-sm">
+          <div
+            className="glass-card p-8 text-center"
+            style={{ cursor: "default" }}
+          >
+            <Syringe
+              size={32}
+              className="mx-auto mb-3"
+              style={{ color: "var(--text-muted)" }}
+            />
+            <p
+              className="text-sm mb-1"
+              style={{ color: "var(--text-primary)" }}
+            >
+              No vaccination records yet
+            </p>
+            <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
+              Add the first vaccination to start tracking schedules.
+            </p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="btn-primary inline-flex items-center gap-2 text-sm"
+            >
               <Plus size={14} /> Add First Record
             </button>
           </div>
@@ -246,39 +831,87 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
             {records.map((r) => {
               const info = getVaccinationStatus(r.nextDueDate);
               return (
-                <div key={r.id} className="glass-card p-4" style={{ cursor: 'default' }}>
+                <div
+                  key={r.id}
+                  className="glass-card p-4"
+                  style={{ cursor: "default" }}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center mt-0.5"
-                        style={{ background: 'rgba(245,158,11,0.15)' }}>
-                        <Syringe size={16} style={{ color: 'var(--color-primary)' }} />
+                      <div
+                        className="w-9 h-9 rounded-lg flex items-center justify-center mt-0.5"
+                        style={{ background: "rgba(245,158,11,0.15)" }}
+                      >
+                        <Syringe
+                          size={16}
+                          style={{ color: "var(--color-primary)" }}
+                        />
                       </div>
                       <div>
-                        <h3 className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{r.vaccinationTypeName}</h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <h3
+                          className="font-medium text-sm"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {r.vaccinationTypeName}
+                        </h3>
+                        <p
+                          className="text-xs mt-0.5"
+                          style={{ color: "var(--text-muted)" }}
+                        >
                           Given: {formatDate(r.dateAdministered)}
-                          {r.vetName ? ` · Dr. ${r.vetName}` : ''}
-                          {r.clinicName ? ` at ${r.clinicName}` : ''}
+                          {r.vetName ? ` · Dr. ${r.vetName}` : ""}
+                          {r.clinicName ? ` at ${r.clinicName}` : ""}
                         </p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                        <p
+                          className="text-xs mt-0.5"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
                           Next due: {formatDate(r.nextDueDate)}
                         </p>
-                        {r.cost && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Cost: ₹{r.cost}</p>}
+                        {r.cost && (
+                          <p
+                            className="text-xs mt-0.5"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            Cost: ₹{r.cost}
+                          </p>
+                        )}
                         {r.sideEffectsNoted && (
-                          <p className="text-xs mt-1 px-2 py-1 rounded" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                          <p
+                            className="text-xs mt-1 px-2 py-1 rounded"
+                            style={{
+                              background: "rgba(239,68,68,0.1)",
+                              color: "#f87171",
+                            }}
+                          >
                             ⚠️ Side effects: {r.sideEffectsNotes}
                           </p>
+                        )}
+                        {r.certificateUrl && (
+                          <button
+                            onClick={() => setCertPreviewUrl(r.certificateUrl!)}
+                            className="flex items-center gap-1 text-[11px] mt-1.5 font-medium transition-colors hover:underline"
+                            style={{ color: "var(--color-primary)" }}
+                          >
+                            <Eye size={11} /> View Certificate
+                          </button>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`status-${info.status} px-2 py-0.5 rounded-full text-[11px] font-medium inline-flex items-center gap-1`}>
-                        {info.status === 'green' && <CheckCircle size={11} />}
-                        {info.status === 'yellow' && <Clock size={11} />}
-                        {info.status === 'red' && <AlertTriangle size={11} />}
+                      <span
+                        className={`status-${info.status} px-2 py-0.5 rounded-full text-[11px] font-medium inline-flex items-center gap-1`}
+                      >
+                        {info.status === "green" && <CheckCircle size={11} />}
+                        {info.status === "yellow" && <Clock size={11} />}
+                        {info.status === "red" && <AlertTriangle size={11} />}
                         {info.label}
                       </span>
-                      <button onClick={() => handleDeleteRecord(r.id)} className="p-1 rounded hover:bg-red-500/10" style={{ color: 'var(--text-muted)' }}>
+                      <button
+                        onClick={() => handleDeleteRecord(r.id)}
+                        className="p-1 rounded hover:bg-red-500/10"
+                        style={{ color: "var(--text-muted)" }}
+                      >
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -291,12 +924,30 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
       </div>
 
       {showModal && user && (
-        <VaccinationModal dogId={resolvedParams.dogId} ownerId={user.uid} onClose={() => setShowModal(false)} />
+        <VaccinationModal
+          dogId={resolvedParams.dogId}
+          ownerId={user.uid}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+      {certPreviewUrl && (
+        <CertificatePreviewModal
+          url={certPreviewUrl}
+          onClose={() => setCertPreviewUrl(null)}
+        />
       )}
     </div>
   );
 }
 
-export default function DogDetailPage({ params }: { params: Promise<{ dogId: string }> }) {
-  return <AppLayout><DogDetailContent params={params} /></AppLayout>;
+export default function DogDetailPage({
+  params,
+}: {
+  params: Promise<{ dogId: string }>;
+}) {
+  return (
+    <AppLayout>
+      <DogDetailContent params={params} />
+    </AppLayout>
+  );
 }

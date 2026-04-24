@@ -12,11 +12,43 @@ import {
   User,
   updateProfile,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "./config";
 import { UserProfile, UserSettings } from "@/types";
 
 const googleProvider = new GoogleAuthProvider();
+
+// ─── Human-readable error mapper ──────────────────────────────────────────
+export function getAuthErrorMessage(err: unknown): string {
+  const code = (err as { code?: string }).code ?? "";
+  const map: Record<string, string> = {
+    "auth/user-not-found":
+      "No account found with that email. Please register first.",
+    "auth/wrong-password": "Incorrect password. Please try again.",
+    "auth/invalid-credential": "Incorrect email or password. Please try again.",
+    "auth/invalid-email": "Please enter a valid email address.",
+    "auth/email-already-in-use":
+      "An account with this email already exists. Try signing in.",
+    "auth/weak-password": "Password must be at least 6 characters.",
+    "auth/too-many-requests":
+      "Too many failed attempts. Please wait a few minutes and try again.",
+    "auth/network-request-failed":
+      "Network error. Please check your connection and try again.",
+    "auth/popup-closed-by-user": "Sign-in was cancelled. Please try again.",
+    "auth/account-exists-with-different-credential":
+      "An account already exists with the same email using a different sign-in method.",
+    "auth/requires-recent-login":
+      "For security, please sign out and sign in again.",
+    "auth/user-disabled":
+      "This account has been disabled. Please contact support.",
+  };
+  return (
+    map[code] ??
+    (err instanceof Error
+      ? err.message
+      : "Something went wrong. Please try again.")
+  );
+}
 
 // --- Sign In ---
 export async function signInWithGoogle(): Promise<User> {
@@ -82,6 +114,19 @@ export async function signInAsDemo(): Promise<User> {
 // --- Sign Out ---
 export async function signOut(): Promise<void> {
   await firebaseSignOut(auth);
+}
+
+// --- Update display name (Auth + Firestore) ---
+export async function updateDisplayName(
+  uid: string,
+  newName: string,
+): Promise<void> {
+  if (!auth.currentUser) throw new Error("Not authenticated");
+  await updateProfile(auth.currentUser, { displayName: newName });
+  await updateDoc(doc(db, "users", uid), {
+    displayName: newName,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 // --- Create user profile in Firestore if it doesn't exist ---
