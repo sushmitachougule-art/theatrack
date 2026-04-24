@@ -3,17 +3,26 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Dog, Bell, Settings } from "lucide-react";
+import { LayoutDashboard, Dog, Settings, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-const NAV_ITEMS = [
+// Mobile bottom nav — Reminders lives in the top bell icon on mobile
+const BASE_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dogs", label: "Dogs", icon: Dog },
-  { href: "/reminders", label: "Reminders", icon: Bell },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
+const ADMIN_TAB = { href: "/admin", label: "Admin", icon: Shield };
+const SETTINGS_TAB = { href: "/settings", label: "Settings", icon: Settings };
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
+
+  // Admin gets 4 tabs: Dashboard · Dogs · Admin · Settings
+  // Regular users get 3 tabs: Dashboard · Dogs · Settings
+  const navItems = isAdmin
+    ? [...BASE_ITEMS, ADMIN_TAB, SETTINGS_TAB]
+    : [...BASE_ITEMS, SETTINGS_TAB];
 
   return (
     <nav
@@ -27,7 +36,7 @@ export default function BottomNav() {
       }}
     >
       <div className="flex items-center justify-around px-2 py-1.5">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));

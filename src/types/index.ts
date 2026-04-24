@@ -14,6 +14,7 @@ export interface UserProfile {
   role: UserRole;
   plan: UserPlan;
   settings: UserSettings;
+  fcmTokens?: string[];
   createdAt: string;
   updatedAt: string;
 }

@@ -1191,11 +1191,13 @@ function AdminContent() {
                     );
                     // 2. Send FCM push to all users who enabled notifications
                     try {
+                      const { getAuth } = await import("firebase/auth");
+                      const idToken = await getAuth().currentUser?.getIdToken();
                       const res = await fetch("/api/send-notification", {
                         method: "POST",
                         headers: {
                           "Content-Type": "application/json",
-                          "x-admin-uid": profile?.uid || "",
+                          Authorization: `Bearer ${idToken || ""}`,
                         },
                         body: JSON.stringify({
                           title: newNotif.title,

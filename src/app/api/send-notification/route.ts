@@ -9,14 +9,28 @@
 // ============================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminMessaging, getAdminDb } from "@/lib/firebase/admin";
+import {
+  getAdminMessaging,
+  getAdminDb,
+  getAdminApp,
+} from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    // ── 1. Auth check — verify caller is an admin ───────────────────────────
-    const adminUid = req.headers.get("x-admin-uid");
-    if (!adminUid) {
+    // ── 1. Auth check — verify Firebase ID token from Authorization header ──
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    let adminUid: string;
+    try {
+      const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
+      adminUid = decoded.uid;
+    } catch {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const db = getAdminDb();

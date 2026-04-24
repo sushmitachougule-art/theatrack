@@ -470,12 +470,15 @@ export async function deactivateNotification(id: string) {
 export function subscribeToActiveNotifications(
   callback: (notifications: SystemNotification[]) => void,
 ) {
-  const q = query(collection(db, "notifications"));
+  const q = query(
+    collection(db, "notifications"),
+    where("isActive", "==", true),
+    orderBy("createdAt", "desc"),
+  );
   return onSnapshot(q, (snap) => {
-    const notifications = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as SystemNotification)
-      .filter((n) => n.isActive !== false)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const notifications = snap.docs.map(
+      (d) => ({ id: d.id, ...d.data() }) as SystemNotification,
+    );
     callback(notifications);
   });
 }

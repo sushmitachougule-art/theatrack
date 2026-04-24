@@ -11,6 +11,7 @@ import {
   Pencil,
   Check,
   BellOff,
+  LogOut,
 } from "lucide-react";
 import { submitFeedback } from "@/lib/repositories";
 import { updateDisplayName } from "@/lib/firebase/auth";
@@ -18,7 +19,7 @@ import { useFCM } from "@/hooks/useFCM";
 import toast from "react-hot-toast";
 
 function SettingsContent() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, logout } = useAuth();
   const { notificationPermissionStatus, requestPermission } = useFCM();
   const [reqType, setReqType] = useState<"breed" | "vaccine">("breed");
   const [reqText, setReqText] = useState("");
@@ -359,6 +360,30 @@ function SettingsContent() {
             {submitting ? "Submitting…" : "Submit Request"}
           </button>
         </form>
+      </div>
+
+      {/* Sign Out */}
+      <div className="glass-card p-5" style={{ cursor: "default" }}>
+        <div className="flex items-center gap-2 mb-4">
+          <LogOut size={18} style={{ color: "#f87171" }} />
+          <h2
+            className="font-semibold text-sm"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Account
+          </h2>
+        </div>
+        <button
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            background: "rgba(239,68,68,0.08)",
+            color: "#f87171",
+            border: "1px solid rgba(239,68,68,0.2)",
+          }}
+        >
+          <LogOut size={15} /> Sign Out
+        </button>
       </div>
 
       {/* App info */}
