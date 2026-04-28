@@ -88,6 +88,17 @@ function AdminContent() {
   });
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [storageStats, setStorageStats] = useState<{
+    totalBytes: number;
+    totalFiles: number;
+    breakdown: {
+      dogs: { bytes: number; count: number };
+      certificates: { bytes: number; count: number };
+      health: { bytes: number; count: number };
+      other: { bytes: number; count: number };
+    };
+  } | null>(null);
+  const [loadingStorage, setLoadingStorage] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -100,6 +111,25 @@ function AdminContent() {
     const unsub4 = subscribeToAllNotifications(setNotifications);
     getAllDogs().then(setDogs);
     getAllVaccinationRecords().then(setRecords);
+
+    // Fetch actual Storage usage from the Admin API
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingStorage(true);
+    (async () => {
+      try {
+        const { getAuth } = await import("firebase/auth");
+        const idToken = await getAuth().currentUser?.getIdToken();
+        const res = await fetch("/api/admin/storage-stats", {
+          headers: { Authorization: `Bearer ${idToken || ""}` },
+        });
+        if (res.ok) setStorageStats(await res.json());
+      } catch {
+        // Storage stats are best-effort — don't block the page
+      } finally {
+        setLoadingStorage(false);
+      }
+    })();
+
     return () => {
       unsub1();
       unsub2();
@@ -308,6 +338,8 @@ function AdminContent() {
                 icon: Users,
                 color: "var(--color-accent)",
                 bg: "rgba(59,130,246,0.08)",
+                tab: "users" as Tab,
+                hint: "Manage users →",
               },
               {
                 label: "Total Dogs",
@@ -315,6 +347,8 @@ function AdminContent() {
                 icon: DogIcon,
                 color: "var(--color-primary)",
                 bg: "var(--color-primary-bg)",
+                tab: "users" as Tab,
+                hint: "View per user →",
               },
               {
                 label: "Vaccinations",
@@ -322,6 +356,8 @@ function AdminContent() {
                 icon: Syringe,
                 color: "var(--color-success)",
                 bg: "rgba(16,185,129,0.08)",
+                tab: "vaccinations" as Tab,
+                hint: "All records →",
               },
               {
                 label: "Overdue",
@@ -329,12 +365,15 @@ function AdminContent() {
                 icon: AlertTriangle,
                 color: "var(--color-danger)",
                 bg: "rgba(239,68,68,0.08)",
+                tab: "vaccinations" as Tab,
+                hint: "Needs attention →",
               },
             ].map((s) => (
-              <div
+              <button
                 key={s.label}
-                className="glass-card p-5"
-                style={{ cursor: "default" }}
+                className="glass-card p-5 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{ cursor: "pointer" }}
+                onClick={() => setTab(s.tab)}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span
@@ -353,11 +392,21 @@ function AdminContent() {
                 <p className="stat-value" style={{ color: s.color }}>
                   {s.value}
                 </p>
-              </div>
+                <p
+                  className="text-[10px] mt-1.5"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  {s.hint}
+                </p>
+              </button>
             ))}
           </div>
           {/* Health Overview Bar */}
-          <div className="glass-card p-5" style={{ cursor: "default" }}>
+          <button
+            className="glass-card p-5 w-full text-left transition-all hover:scale-[1.01] active:scale-[0.99]"
+            style={{ cursor: "pointer" }}
+            onClick={() => setTab("vaccinations")}
+          >
             <h3
               className="text-sm font-semibold mb-4 flex items-center gap-2"
               style={{ color: "var(--text-primary)" }}
@@ -435,10 +484,14 @@ function AdminContent() {
                 )}
               </div>
             )}
-          </div>
+          </button>
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="glass-card p-4" style={{ cursor: "default" }}>
+            <button
+              className="glass-card p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ cursor: "pointer" }}
+              onClick={() => setTab("users")}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp
                   size={14}
@@ -457,8 +510,18 @@ function AdminContent() {
               >
                 {stats.adminCount}
               </p>
-            </div>
-            <div className="glass-card p-4" style={{ cursor: "default" }}>
+              <p
+                className="text-[10px] mt-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                Manage users →
+              </p>
+            </button>
+            <button
+              className="glass-card p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ cursor: "pointer" }}
+              onClick={() => setTab("vaccinations")}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <Syringe size={14} style={{ color: "var(--color-primary)" }} />
                 <span
@@ -474,7 +537,13 @@ function AdminContent() {
               >
                 {types.length}
               </p>
-            </div>
+              <p
+                className="text-[10px] mt-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                Manage types →
+              </p>
+            </button>
           </div>
           {/* Firebase Usage Estimates */}
           <div className="glass-card p-5" style={{ cursor: "default" }}>
@@ -568,24 +637,222 @@ function AdminContent() {
                   }}
                 />
               </div>
-              <p
-                className="text-[10px] mt-2"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Storage quota (1 GiB free) is used by uploaded photos and
-                certificates — monitor in the{" "}
-                <a
-                  href="https://console.firebase.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  Firebase Console
-                </a>
-                .
-              </p>
             </div>
+          </div>
+          {/* ── Cloud Storage Usage (live) ──────────────────────── */}
+          <div className="glass-card p-5" style={{ cursor: "default" }}>
+            <div className="flex items-center justify-between mb-1">
+              <h3
+                className="text-sm font-semibold flex items-center gap-2"
+                style={{ color: "var(--text-primary)" }}
+              >
+                <HardDrive
+                  size={15}
+                  style={{ color: "var(--color-primary)" }}
+                />{" "}
+                Cloud Storage Usage
+              </h3>
+              {loadingStorage && (
+                <div className="spinner" style={{ width: 14, height: 14 }} />
+              )}
+            </div>
+            <p
+              className="text-[10px] mb-4"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Firebase Spark plan — 5 GB free storage. Actual usage from
+              uploaded dog photos, vaccination certificates, and health
+              attachments.
+            </p>
+
+            {storageStats ? (
+              (() => {
+                const STORAGE_LIMIT = 5 * 1024 * 1024 * 1024; // 5 GB in bytes
+                const usedPct = Math.min(
+                  (storageStats.totalBytes / STORAGE_LIMIT) * 100,
+                  100,
+                );
+                const warn = usedPct > 70;
+                const critical = usedPct > 90;
+
+                const fmtBytes = (b: number) => {
+                  if (b >= 1024 * 1024 * 1024)
+                    return `${(b / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+                  if (b >= 1024 * 1024)
+                    return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+                  if (b >= 1024) return `${(b / 1024).toFixed(0)} KB`;
+                  return `${b} B`;
+                };
+
+                const buckets = [
+                  {
+                    label: "Dog Photos",
+                    ...storageStats.breakdown.dogs,
+                    color: "#fbbf24",
+                  },
+                  {
+                    label: "Certificates",
+                    ...storageStats.breakdown.certificates,
+                    color: "#34d399",
+                  },
+                  {
+                    label: "Health Records",
+                    ...storageStats.breakdown.health,
+                    color: "#60a5fa",
+                  },
+                  {
+                    label: "Other",
+                    ...storageStats.breakdown.other,
+                    color: "#a78bfa",
+                  },
+                ];
+
+                return (
+                  <div className="space-y-4">
+                    {/* Main gauge */}
+                    <div>
+                      <div className="flex items-end justify-between mb-2">
+                        <span
+                          className="text-2xl font-bold"
+                          style={{
+                            color: critical
+                              ? "#f87171"
+                              : warn
+                                ? "#fbbf24"
+                                : "#34d399",
+                          }}
+                        >
+                          {fmtBytes(storageStats.totalBytes)}
+                        </span>
+                        <span
+                          className="text-xs"
+                          style={{ color: "var(--text-muted)" }}
+                        >
+                          of 5 GB · {storageStats.totalFiles} file
+                          {storageStats.totalFiles !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      {/* Segmented bar */}
+                      <div
+                        className="flex rounded-full overflow-hidden h-3"
+                        style={{ background: "var(--bg-input)" }}
+                      >
+                        {buckets.map((b) => {
+                          const w = (b.bytes / STORAGE_LIMIT) * 100;
+                          return w > 0 ? (
+                            <div
+                              key={b.label}
+                              title={`${b.label}: ${fmtBytes(b.bytes)}`}
+                              style={{ width: `${w}%`, background: b.color }}
+                              className="transition-all duration-700"
+                            />
+                          ) : null;
+                        })}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                        {buckets.map((b) => (
+                          <span
+                            key={b.label}
+                            className="text-[10px] flex items-center gap-1"
+                            style={{ color: "var(--text-muted)" }}
+                          >
+                            <span
+                              className="inline-block w-2 h-2 rounded-full"
+                              style={{ background: b.color }}
+                            />
+                            {b.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Per-category rows */}
+                    <div className="space-y-2.5">
+                      {buckets.map((b) => {
+                        const pct = Math.min(
+                          (b.bytes / STORAGE_LIMIT) * 100,
+                          100,
+                        );
+                        return (
+                          <div key={b.label}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span
+                                className="text-xs"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {b.label}{" "}
+                                <span style={{ color: "var(--text-muted)" }}>
+                                  ({b.count} file{b.count !== 1 ? "s" : ""})
+                                </span>
+                              </span>
+                              <span
+                                className="text-[11px] font-medium"
+                                style={{ color: "var(--text-muted)" }}
+                              >
+                                {fmtBytes(b.bytes)}
+                              </span>
+                            </div>
+                            <div
+                              className="h-1.5 rounded-full overflow-hidden"
+                              style={{ background: "var(--bg-input)" }}
+                            >
+                              <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: b.color,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {critical && (
+                      <div
+                        className="flex items-center gap-2 p-2.5 rounded-xl text-xs"
+                        style={{
+                          background: "rgba(239,68,68,0.08)",
+                          border: "1px solid rgba(239,68,68,0.25)",
+                          color: "#f87171",
+                        }}
+                      >
+                        <AlertTriangle size={13} /> Storage above 90% — consider
+                        cleaning up unused files or upgrading to Blaze plan.
+                      </div>
+                    )}
+                    {warn && !critical && (
+                      <div
+                        className="flex items-center gap-2 p-2.5 rounded-xl text-xs"
+                        style={{
+                          background: "rgba(251,191,36,0.08)",
+                          border: "1px solid rgba(251,191,36,0.25)",
+                          color: "#fbbf24",
+                        }}
+                      >
+                        <AlertTriangle size={13} /> Storage above 70% — monitor
+                        usage closely.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            ) : !loadingStorage ? (
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Could not load storage stats. Check Admin SDK credentials.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {[80, 55, 35].map((w) => (
+                  <div
+                    key={w}
+                    className="skeleton h-3 rounded-full"
+                    style={{ width: `${w}%` }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           {/* Recent Activity */}{" "}
           <div className="glass-card p-5" style={{ cursor: "default" }}>

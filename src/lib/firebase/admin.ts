@@ -7,10 +7,12 @@
 import { getApps, initializeApp, cert, App } from "firebase-admin/app";
 import { getMessaging, Messaging } from "firebase-admin/messaging";
 import { getFirestore, Firestore } from "firebase-admin/firestore";
+import { getStorage, Storage } from "firebase-admin/storage";
 
 let adminApp: App;
 let adminMessaging: Messaging;
 let adminDb: Firestore;
+let adminStorage: Storage;
 
 function initAdmin(): App {
   if (getApps().length > 0) return getApps()[0];
@@ -45,4 +47,9 @@ export function getAdminMessaging(): Messaging {
 export function getAdminDb(): Firestore {
   if (!adminDb) adminDb = getFirestore(getAdminApp());
   return adminDb;
+}
+
+export function getAdminStorage(): Storage {
+  if (!adminStorage) adminStorage = getStorage(getAdminApp());
+  return adminStorage;
 }

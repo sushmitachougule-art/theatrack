@@ -18,7 +18,12 @@ import {
   limit,
   setDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 import { db, storage } from "@/lib/firebase/config";
 import {
   Dog,
@@ -37,6 +42,45 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { calculateNextDueDate, toISOString } from "@/lib/utils/dateUtils";
 import { compressImage } from "@/lib/utils/imageUtils";
+
+// =====================
+// Storage Helpers
+// =====================
+
+/**
+ * Extract the storage object path from a Firebase Storage download URL.
+ * Handles both the legacy googleapis.com format and the newer
+ * *.firebasestorage.app format.
+ */
+function storagePathFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const oIdx = u.pathname.indexOf("/o/");
+    if (oIdx === -1) return null;
+    // Strip query params (alt=media&token=…) and decode percent-encoding
+    return decodeURIComponent(u.pathname.slice(oIdx + 3).split("?")[0]);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete a file from Firebase Storage by its download URL.
+ * Silently no-ops if the URL is null/undefined or the file no longer exists.
+ */
+async function safeDeleteStorageFile(
+  url: string | null | undefined,
+): Promise<void> {
+  if (!url) return;
+  const path = storagePathFromUrl(url);
+  if (!path) return;
+  try {
+    await deleteObject(ref(storage, path));
+  } catch (err: unknown) {
+    // File may already be gone — don't propagate the error
+    console.warn("[storage] Could not delete file:", path, err);
+  }
+}
 
 // =====================
 // Dog Repository
@@ -94,9 +138,17 @@ export async function updateDog(
     ...data,
     updatedAt: toISOString(),
   };
+  // These are not Firestore fields
+  delete updateData.photo;
+  delete updateData.removePhoto;
 
-  // Handle photo upload if new photo provided
   if (data.photo) {
+    // Fetch current dog to retrieve old photo URL before overwriting
+    const currentSnap = await getDoc(doc(db, "dogs", dogId));
+    const oldPhotoUrl = currentSnap.exists()
+      ? (currentSnap.data().photoUrl as string | null)
+      : null;
+
     const compressed = await compressImage(data.photo, {
       maxWidthPx: 600,
       maxHeightPx: 600,
@@ -105,15 +157,29 @@ export async function updateDog(
     const photoRef = ref(storage, `dogs/${ownerId}/${uuidv4()}`);
     await uploadBytes(photoRef, compressed);
     updateData.photoUrl = await getDownloadURL(photoRef);
-    delete updateData.photo;
-  } else {
-    delete updateData.photo;
+
+    // Delete old photo only after new one is safely uploaded
+    await safeDeleteStorageFile(oldPhotoUrl);
+  } else if (data.removePhoto) {
+    // User explicitly removed the photo — delete from Storage and clear the field
+    const currentSnap = await getDoc(doc(db, "dogs", dogId));
+    const oldPhotoUrl = currentSnap.exists()
+      ? (currentSnap.data().photoUrl as string | null)
+      : null;
+    await safeDeleteStorageFile(oldPhotoUrl);
+    updateData.photoUrl = null;
   }
 
   await updateDoc(doc(db, "dogs", dogId), updateData);
 }
 
 export async function deleteDog(dogId: string): Promise<void> {
+  // Clean up Storage before removing the Firestore document so we don't
+  // leave orphaned files if the doc delete fails or the app crashes.
+  const snap = await getDoc(doc(db, "dogs", dogId));
+  if (snap.exists()) {
+    await safeDeleteStorageFile(snap.data().photoUrl as string | null);
+  }
   await deleteDoc(doc(db, "dogs", dogId));
 }
 
@@ -271,6 +337,11 @@ export async function updateVaccinationRecord(
 }
 
 export async function deleteVaccinationRecord(recordId: string): Promise<void> {
+  // Delete the certificate file from Storage before removing the Firestore doc
+  const snap = await getDoc(doc(db, "vaccinationRecords", recordId));
+  if (snap.exists()) {
+    await safeDeleteStorageFile(snap.data().certificateUrl as string | null);
+  }
   await deleteDoc(doc(db, "vaccinationRecords", recordId));
 }
 

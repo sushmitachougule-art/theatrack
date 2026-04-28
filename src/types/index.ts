@@ -187,6 +187,8 @@ export interface DogFormData {
   emergencyVetPhone: string;
   notes: string;
   photo: File | null;
+  /** When true, the existing dog photo is deleted from Storage and photoUrl is set to null */
+  removePhoto?: boolean;
 }
 
 export interface VaccinationFormData {

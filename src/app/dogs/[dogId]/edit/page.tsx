@@ -91,14 +91,17 @@ function EditDogContent({ params }: { params: Promise<{ dogId: string }> }) {
       toast.error("Photo must be under 5MB");
       return;
     }
+    // Selecting a new photo cancels any explicit remove request
     update("photo", file);
+    update("removePhoto", false);
     const reader = new FileReader();
     reader.onloadend = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  const removePhoto = () => {
+  const handleRemovePhoto = () => {
     update("photo", null);
+    update("removePhoto", true);
     setPhotoPreview(null);
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
@@ -210,7 +213,7 @@ function EditDogContent({ params }: { params: Promise<{ dogId: string }> }) {
             {displayPhoto && (
               <button
                 type="button"
-                onClick={removePhoto}
+                onClick={handleRemovePhoto}
                 className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
                 style={{ background: "#ef4444", color: "white" }}
               >
