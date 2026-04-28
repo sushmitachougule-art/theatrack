@@ -28,7 +28,7 @@ export default function BottomNav() {
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-40"
       style={{
-        background: "rgba(10,15,30,0.97)",
+        background: "var(--nav-blur-bg)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         borderTop: "1px solid var(--border-color)",
@@ -54,7 +54,7 @@ export default function BottomNav() {
               {isActive && (
                 <span
                   className="absolute inset-0 rounded-2xl"
-                  style={{ background: "rgba(245,158,11,0.12)" }}
+                  style={{ background: "rgba(13,148,136,0.1)" }}
                 />
               )}
               <item.icon

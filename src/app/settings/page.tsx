@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme, THEMES } from "@/hooks/useTheme";
 import {
   Settings,
   User,
@@ -12,6 +13,7 @@ import {
   Check,
   BellOff,
   LogOut,
+  Palette,
 } from "lucide-react";
 import { submitFeedback } from "@/lib/repositories";
 import { updateDisplayName } from "@/lib/firebase/auth";
@@ -21,6 +23,7 @@ import toast from "react-hot-toast";
 function SettingsContent() {
   const { user, profile, refreshProfile, logout } = useAuth();
   const { notificationPermissionStatus, requestPermission } = useFCM();
+  const { theme, setTheme } = useTheme();
   const [reqType, setReqType] = useState<"breed" | "vaccine">("breed");
   const [reqText, setReqText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -87,6 +90,87 @@ function SettingsContent() {
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
           Manage your account preferences
         </p>
+      </div>
+
+      {/* Appearance */}
+      <div className="glass-card p-5" style={{ cursor: "default" }}>
+        <div className="flex items-center gap-2 mb-4">
+          <Palette size={18} style={{ color: "var(--color-primary)" }} />
+          <h2
+            className="font-semibold text-sm"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Appearance
+          </h2>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {THEMES.map((t) => {
+            const isActive = theme === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTheme(t.id)}
+                className="relative flex flex-col items-center gap-2.5 p-3.5 rounded-2xl transition-all duration-200"
+                style={{
+                  background: isActive
+                    ? "var(--color-primary-50, rgba(var(--color-primary),0.08))"
+                    : "var(--bg-input)",
+                  border: `2px solid ${
+                    isActive ? "var(--color-primary)" : "var(--border-color)"
+                  }`,
+                  transform: isActive ? "scale(1.02)" : "scale(1)",
+                  boxShadow: isActive ? "var(--shadow-glow)" : "none",
+                }}
+              >
+                {/* Color preview */}
+                <div
+                  className="w-full h-12 rounded-xl overflow-hidden flex gap-1 p-1.5"
+                  style={{ background: t.preview.bg }}
+                >
+                  <div
+                    className="flex-1 rounded-lg"
+                    style={{ background: t.preview.card }}
+                  />
+                  <div
+                    className="w-4 rounded-lg"
+                    style={{ background: t.preview.primary }}
+                  />
+                </div>
+
+                {/* Label */}
+                <div className="text-center">
+                  <p
+                    className="text-xs font-bold flex items-center justify-center gap-1"
+                    style={{
+                      color: isActive
+                        ? "var(--color-primary)"
+                        : "var(--text-primary)",
+                    }}
+                  >
+                    <span>{t.icon}</span> {t.label}
+                  </p>
+                  <p
+                    className="text-[10px] mt-0.5"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {t.description}
+                  </p>
+                </div>
+
+                {/* Active checkmark */}
+                {isActive && (
+                  <div
+                    className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--color-primary)" }}
+                  >
+                    <Check size={11} color="white" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Profile */}

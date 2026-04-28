@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
-import { Toaster } from "react-hot-toast";
+import { ThemeProvider } from "@/hooks/useTheme";
+import { ThemedToaster } from "@/components/layout/ThemedToaster";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -17,7 +18,7 @@ const mono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#f59e0b",
+  themeColor: "#0d9488",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -28,7 +29,14 @@ export const metadata: Metadata = {
   title: "PawShield — Dog Vaccination Tracker",
   description:
     "Track your dog's vaccinations, get smart reminders, and never miss a booster. Multi-dog support with full health records.",
-  keywords: ["dog", "vaccination", "tracker", "pet health", "reminders", "pawshield"],
+  keywords: [
+    "dog",
+    "vaccination",
+    "tracker",
+    "pet health",
+    "reminders",
+    "pawshield",
+  ],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -44,7 +52,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "PawShield — Dog Vaccination Tracker",
-    description: "Never miss a vaccination. Track, remind, protect your furry friends.",
+    description:
+      "Never miss a vaccination. Track, remind, protect your furry friends.",
     type: "website",
     siteName: "PawShield",
   },
@@ -61,28 +70,21 @@ export default function RootLayout({
       className={`${jakarta.variable} ${mono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {/* No-flash theme script — runs before React hydration */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('pawshield-theme');document.documentElement.setAttribute('data-theme',t&&['light','dark','colorful'].includes(t)?t:'colorful')})()`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AuthProvider>
-          {children}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: '#1e293b',
-                color: '#f1f5f9',
-                border: '1px solid #334155',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontFamily: 'var(--font-sans)',
-              },
-              success: {
-                iconTheme: { primary: '#10b981', secondary: '#1e293b' },
-              },
-              error: {
-                iconTheme: { primary: '#ef4444', secondary: '#1e293b' },
-              },
-            }}
-          />
+          <ThemeProvider>
+            {children}
+            <ThemedToaster />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
