@@ -35,9 +35,10 @@ function SettingsContent() {
   );
   const [savingName, setSavingName] = useState(false);
 
-  // Sync input when profile loads
+  // Sync input when profile loads (external Firebase state sync — not a React state cycle)
   React.useEffect(() => {
     if (profile?.displayName && !editingName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayNameInput(profile.displayName);
     }
   }, [profile?.displayName, editingName]);
@@ -206,9 +207,9 @@ function SettingsContent() {
                     disabled={savingName || !displayNameInput.trim()}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
                     style={{
-                      background: "rgba(245,158,11,0.15)",
+                      background: "var(--color-primary-bg-strong)",
                       color: "var(--color-primary)",
-                      border: "1px solid rgba(245,158,11,0.3)",
+                      border: "1px solid var(--color-primary-border)",
                     }}
                   >
                     {savingName ? (
@@ -306,8 +307,8 @@ function SettingsContent() {
                   className="text-xs mt-0.5"
                   style={{ color: "var(--text-muted)" }}
                 >
-                  You'll be notified 7, 3, and 1 day before vaccinations are
-                  due.
+                  You&apos;ll be notified 7, 3, and 1 day before vaccinations
+                  are due.
                 </p>
               </div>
             </div>
@@ -405,12 +406,14 @@ function SettingsContent() {
                 className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
                 style={{
                   background:
-                    reqType === t ? "rgba(245,158,11,0.15)" : "var(--bg-input)",
+                    reqType === t
+                      ? "var(--color-primary-bg-strong)"
+                      : "var(--bg-input)",
                   color:
                     reqType === t
                       ? "var(--color-primary)"
                       : "var(--text-muted)",
-                  border: `1px solid ${reqType === t ? "rgba(245,158,11,0.3)" : "var(--border-color)"}`,
+                  border: `1px solid ${reqType === t ? "var(--color-primary-border)" : "var(--border-color)"}`,
                 }}
               >
                 {t === "breed" ? "🐕 Dog Breed" : "💉 Vaccine Type"}

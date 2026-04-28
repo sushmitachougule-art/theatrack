@@ -50,11 +50,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("colorful");
 
   useEffect(() => {
-    // Sync React state with what the inline script already applied
+    // Sync React state with what the inline script already applied (DOM read, not a React state cycle)
     const applied = document.documentElement.getAttribute(
       "data-theme",
     ) as Theme;
     if (applied && ["light", "dark", "colorful"].includes(applied)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThemeState(applied);
     }
   }, []);

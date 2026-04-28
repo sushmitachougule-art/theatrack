@@ -4,8 +4,9 @@
   "description": "Track your dog's vaccinations, get smart reminders, and never miss a booster.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#f59e0b",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#faf5ff",
+  "theme_color": "#8b5cf6",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
@@ -20,6 +21,26 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add New Dog",
+      "short_name": "Add Dog",
+      "url": "/dogs/new",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Reminders",
+      "short_name": "Reminders",
+      "url": "/reminders",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Dogs",
+      "short_name": "Dogs",
+      "url": "/dogs",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["health", "lifestyle", "utilities"],

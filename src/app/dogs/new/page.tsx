@@ -127,7 +127,7 @@ function NewDogContent() {
         <div className="flex flex-col items-center">
           <div className="relative">
             <div
-              className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer border-2 border-dashed transition-all hover:border-amber-500/50 relative"
+              className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer border-2 border-dashed transition-all relative"
               style={{
                 background: "var(--bg-input)",
                 borderColor: photoPreview
@@ -231,7 +231,7 @@ function NewDogContent() {
                   style={{
                     background:
                       form.gender === g
-                        ? "rgba(245,158,11,0.2)"
+                        ? "var(--color-primary-bg-strong)"
                         : "var(--bg-input)",
                     border: `1px solid ${form.gender === g ? "var(--color-primary)" : "var(--border-color)"}`,
                     color:

@@ -328,7 +328,7 @@ function DashboardContent() {
       sub: `${dogs.length > 1 ? "dogs" : "dog"} registered`,
       icon: Dog,
       color: "var(--color-primary)",
-      bg: "rgba(13,148,136,0.08)",
+      bg: "var(--color-primary-bg)",
     },
     {
       id: "upToDate" as FilterType,
@@ -541,7 +541,15 @@ function DashboardContent() {
                   <button
                     type="button"
                     onClick={() => toggleExpand(dog.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02] transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                    style={{ background: "transparent" }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background =
+                        "var(--color-primary-bg)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
                   >
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 dog-avatar flex items-center justify-center">

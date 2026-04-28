@@ -21,6 +21,7 @@ export function usePWAInstall() {
       window.matchMedia("(display-mode: standalone)").matches ||
       ("standalone" in window.navigator &&
         !!(window.navigator as unknown as { standalone: boolean }).standalone);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isStandalone) setIsInstalled(true);
 
     // Listen for the user installing mid-session

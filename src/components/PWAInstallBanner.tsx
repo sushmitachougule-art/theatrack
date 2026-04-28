@@ -36,6 +36,7 @@ export default function PWAInstallBanner() {
     if (dismissed) return;
 
     const iosDevice = isIOS();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIos(iosDevice);
 
     if (iosDevice) {
@@ -80,9 +81,8 @@ export default function PWAInstallBanner() {
         style={{
           background: "rgba(17,24,39,0.97)",
           backdropFilter: "blur(24px)",
-          border: "1px solid rgba(245,158,11,0.3)",
-          boxShadow:
-            "0 0 30px rgba(245,158,11,0.12), 0 20px 60px rgba(0,0,0,0.5)",
+          border: "1px solid var(--color-primary-border)",
+          boxShadow: "0 0 30px var(--shadow-glow), 0 20px 60px rgba(0,0,0,0.5)",
         }}
       >
         {/* Close */}
@@ -125,8 +125,8 @@ export default function PWAInstallBanner() {
           <div
             className="rounded-xl p-3 text-xs space-y-1.5"
             style={{
-              background: "rgba(245,158,11,0.08)",
-              border: "1px solid rgba(245,158,11,0.15)",
+              background: "var(--color-primary-bg)",
+              border: "1px solid var(--color-primary-border)",
             }}
           >
             <p style={{ color: "var(--text-secondary)" }}>

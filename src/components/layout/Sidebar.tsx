@@ -62,7 +62,7 @@ export default function Sidebar() {
           className="p-1.5 rounded-lg transition-colors"
           style={{
             color: "var(--text-primary)",
-            background: mobileOpen ? "rgba(245,158,11,0.1)" : "transparent",
+            background: mobileOpen ? "var(--color-primary-bg)" : "transparent",
           }}
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}

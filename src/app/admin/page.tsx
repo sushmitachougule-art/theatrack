@@ -11,7 +11,6 @@ import {
   getAllVaccinationRecords,
   createVaccinationType,
   subscribeToAllFeedback,
-  resolveFeedback,
   updateFeedbackStatus,
   deleteFeedback,
   subscribeToAllNotifications,
@@ -46,7 +45,6 @@ import {
   Clock,
   MessageSquare,
   BellRing,
-  Check,
   Database,
   HardDrive,
 } from "lucide-react";
@@ -283,12 +281,14 @@ function AdminContent() {
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all flex-1 justify-center"
             style={{
               background:
-                tab === t.key ? "rgba(245,158,11,0.15)" : "transparent",
+                tab === t.key
+                  ? "var(--color-primary-bg-strong)"
+                  : "transparent",
               color:
                 tab === t.key ? "var(--color-primary)" : "var(--text-muted)",
               border:
                 tab === t.key
-                  ? "1px solid rgba(245,158,11,0.2)"
+                  ? "1px solid var(--color-primary-border)"
                   : "1px solid transparent",
             }}
           >
@@ -314,7 +314,7 @@ function AdminContent() {
                 value: stats.dogs,
                 icon: DogIcon,
                 color: "var(--color-primary)",
-                bg: "rgba(245,158,11,0.08)",
+                bg: "var(--color-primary-bg)",
               },
               {
                 label: "Vaccinations",
@@ -689,7 +689,7 @@ function AdminContent() {
                     style={{
                       background:
                         u.role === "admin"
-                          ? "rgba(245,158,11,0.15)"
+                          ? "var(--color-primary-bg-strong)"
                           : "rgba(100,116,139,0.15)",
                       color:
                         u.role === "admin"
@@ -750,7 +750,7 @@ function AdminContent() {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center"
-                    style={{ background: "rgba(245,158,11,0.1)" }}
+                    style={{ background: "var(--color-primary-bg)" }}
                   >
                     <Syringe
                       size={15}
@@ -920,7 +920,7 @@ function AdminContent() {
                 <div className="flex items-start gap-3">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                    style={{ background: "rgba(245,158,11,0.1)" }}
+                    style={{ background: "var(--color-primary-bg)" }}
                   >
                     <Activity
                       size={14}

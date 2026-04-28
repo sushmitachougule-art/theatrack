@@ -25,7 +25,7 @@ export default function PWAHeader() {
     <header
       className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-end justify-between px-4 pb-3"
       style={{
-        background: "rgba(10,15,30,0.97)",
+        background: "var(--nav-blur-bg)",
         backdropFilter: "blur(24px)",
         WebkitBackdropFilter: "blur(24px)",
         borderBottom: "1px solid var(--border-color)",
@@ -51,7 +51,7 @@ export default function PWAHeader() {
         className="relative p-2.5 rounded-xl transition-all"
         style={{
           background: isRemindersActive
-            ? "rgba(245,158,11,0.12)"
+            ? "var(--color-primary-bg-hover)"
             : "transparent",
           color: isRemindersActive
             ? "var(--color-primary)"

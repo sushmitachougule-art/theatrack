@@ -153,7 +153,7 @@ export default function FeedbackOverlay() {
                   <span
                     className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                     style={{
-                      background: "rgba(245,158,11,0.2)",
+                      background: "var(--color-primary-bg-hover)",
                       color: "var(--color-primary)",
                     }}
                   >
@@ -180,13 +180,13 @@ export default function FeedbackOverlay() {
                         style={{
                           background:
                             type === t
-                              ? "rgba(245,158,11,0.15)"
+                              ? "var(--color-primary-bg-strong)"
                               : "var(--bg-input)",
                           color:
                             type === t
                               ? "var(--color-primary)"
                               : "var(--text-muted)",
-                          border: `1px solid ${type === t ? "rgba(245,158,11,0.3)" : "transparent"}`,
+                          border: `1px solid ${type === t ? "var(--color-primary-border)" : "transparent"}`,
                         }}
                       >
                         {t}
@@ -199,7 +199,7 @@ export default function FeedbackOverlay() {
                     Message
                   </label>
                   <textarea
-                    className="form-input w-full p-3 rounded-xl min-h-[120px] resize-none focus:ring-2 focus:ring-amber-500/50"
+                    className="form-input w-full p-3 rounded-xl min-h-[120px] resize-none"
                     placeholder={
                       type === "bug"
                         ? "Describe the issue you encountered..."

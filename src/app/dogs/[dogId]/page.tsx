@@ -18,12 +18,7 @@ import {
   getDogShareTokens,
   revokeShareToken,
 } from "@/lib/repositories";
-import {
-  Dog,
-  VaccinationFormData,
-  VaccinationRecord,
-  ShareToken,
-} from "@/types";
+import { Dog, VaccinationFormData, ShareToken } from "@/types";
 import {
   getVaccinationStatus,
   formatDate,
@@ -265,9 +260,9 @@ function CertificatePreviewModal({
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all"
               style={{
-                background: "rgba(245,158,11,0.1)",
+                background: "var(--color-primary-bg)",
                 color: "var(--color-primary)",
-                border: "1px solid rgba(245,158,11,0.2)",
+                border: "1px solid var(--color-primary-border)",
               }}
             >
               <Download size={13} /> Open / Download
@@ -305,6 +300,7 @@ function CertificatePreviewModal({
             </div>
           ) : (
             <div className="relative w-full" style={{ minHeight: 200 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={url}
                 alt="Vaccination Certificate"
@@ -545,10 +541,10 @@ function VaccinationModal({
               Vaccination Certificate (optional)
             </label>
             <div
-              className="flex items-center gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition-all hover:border-amber-500/40"
+              className="flex items-center gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition-all"
               style={{
                 borderColor: certFileName
-                  ? "rgba(245,158,11,0.4)"
+                  ? "var(--color-primary-border)"
                   : "var(--border-color)",
                 background: "var(--bg-input)",
               }}
@@ -556,7 +552,7 @@ function VaccinationModal({
             >
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(245,158,11,0.1)" }}
+                style={{ background: "var(--color-primary-bg)" }}
               >
                 <Camera size={16} style={{ color: "var(--color-primary)" }} />
               </div>
@@ -752,106 +748,129 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
         <ArrowLeft size={16} /> Back to My Dogs
       </Link>
 
-      {/* Profile card */}
-      <div className="glass-card p-6" style={{ cursor: "default" }}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+      {/* Profile card — horizontal layout */}
+      <div className="glass-card p-5" style={{ cursor: "default" }}>
+        <div className="flex gap-5">
+          {/* Left — Large photo */}
           <div
-            className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
-            style={{ background: "rgba(245,158,11,0.15)" }}
+            className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl flex-shrink-0 flex items-center justify-center text-4xl overflow-hidden"
+            style={{ background: "var(--color-primary-bg-strong)" }}
           >
             {dog.photoUrl ? (
               <Image
                 src={dog.photoUrl}
                 alt={dog.name}
-                width={64}
-                height={64}
-                className="w-full h-full rounded-xl object-cover"
+                width={144}
+                height={144}
+                className="w-full h-full object-cover"
               />
             ) : (
               "🐕"
             )}
           </div>
-          <div className="flex-1">
-            <h1
-              className="text-2xl font-bold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {dog.name}
-            </h1>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              {dog.breed} · {getDogAge(dog.dateOfBirth)} ·{" "}
-              {dog.gender === "male" ? "♂ Male" : "♀ Female"}
-              {dog.weight ? ` · ${dog.weight}kg` : ""}
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={handleExportPDF}
-              className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2"
-            >
-              <Download size={14} /> Export PDF
-            </button>
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2"
-            >
-              <Share2 size={14} /> Share
-            </button>
-            <Link
-              href={`/dogs/${resolvedParams.dogId}/edit`}
-              className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2"
-            >
-              <Pencil size={14} /> Edit
-            </Link>
-            <button
-              onClick={handleDeleteDog}
-              className="btn-danger flex items-center justify-center gap-2 text-sm px-3 py-2"
-            >
-              <Trash2 size={14} /> Delete
-            </button>
+
+          {/* Right — Info + Actions */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between">
+            <div>
+              <h1
+                className="text-xl sm:text-2xl font-bold leading-tight"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {dog.name}
+              </h1>
+              <p
+                className="text-sm mt-1"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {dog.breed}
+              </p>
+              <div
+                className="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-2"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <span>{getDogAge(dog.dateOfBirth)}</span>
+                <span>{dog.gender === "male" ? "♂ Male" : "♀ Female"}</span>
+                {dog.weight && <span>{dog.weight} kg</span>}
+              </div>
+            </div>
+
+            {/* Action buttons — compact row */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button
+                onClick={handleExportPDF}
+                className="btn-secondary flex items-center gap-1.5 text-xs px-2.5 py-1.5"
+              >
+                <Download size={13} /> PDF
+              </button>
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="btn-secondary flex items-center gap-1.5 text-xs px-2.5 py-1.5"
+              >
+                <Share2 size={13} /> Share
+              </button>
+              <Link
+                href={`/dogs/${resolvedParams.dogId}/edit`}
+                className="btn-secondary flex items-center gap-1.5 text-xs px-2.5 py-1.5"
+              >
+                <Pencil size={13} /> Edit
+              </Link>
+              <button
+                onClick={handleDeleteDog}
+                className="btn-danger flex items-center gap-1.5 text-xs px-2.5 py-1.5"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Info chips */}
-        <div className="flex flex-wrap gap-2 text-xs">
-          {dog.microchipNumber && (
-            <span
-              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
-              style={{
-                background: "var(--bg-input)",
-                border: "1px solid var(--border-color)",
-                color: "var(--text-secondary)",
-              }}
-            >
-              <Shield size={12} /> Microchip: {dog.microchipNumber}
-            </span>
-          )}
-          {dog.emergencyVetPhone && (
-            <span
-              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
-              style={{
-                background: "var(--bg-input)",
-                border: "1px solid var(--border-color)",
-                color: "var(--text-secondary)",
-              }}
-            >
-              <Phone size={12} /> Emergency: {dog.emergencyVetName} (
-              {dog.emergencyVetPhone})
-            </span>
-          )}
-          {dog.insuranceProvider && (
-            <span
-              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
-              style={{
-                background: "var(--bg-input)",
-                border: "1px solid var(--border-color)",
-                color: "var(--text-secondary)",
-              }}
-            >
-              <FileText size={12} /> Insurance: {dog.insuranceProvider}
-            </span>
-          )}
-        </div>
+        {(dog.microchipNumber ||
+          dog.emergencyVetPhone ||
+          dog.insuranceProvider) && (
+          <div
+            className="flex flex-wrap gap-2 text-xs mt-4 pt-4"
+            style={{ borderTop: "1px solid var(--border-color)" }}
+          >
+            {dog.microchipNumber && (
+              <span
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                style={{
+                  background: "var(--bg-input)",
+                  border: "1px solid var(--border-color)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <Shield size={12} /> Microchip: {dog.microchipNumber}
+              </span>
+            )}
+            {dog.emergencyVetPhone && (
+              <span
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                style={{
+                  background: "var(--bg-input)",
+                  border: "1px solid var(--border-color)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <Phone size={12} /> Emergency: {dog.emergencyVetName} (
+                {dog.emergencyVetPhone})
+              </span>
+            )}
+            {dog.insuranceProvider && (
+              <span
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+                style={{
+                  background: "var(--bg-input)",
+                  border: "1px solid var(--border-color)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <FileText size={12} /> Insurance: {dog.insuranceProvider}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Health summary */}
@@ -1060,7 +1079,7 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
                     <div className="flex items-start gap-3">
                       <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center mt-0.5"
-                        style={{ background: "rgba(245,158,11,0.15)" }}
+                        style={{ background: "var(--color-primary-bg-strong)" }}
                       >
                         <Syringe
                           size={16}

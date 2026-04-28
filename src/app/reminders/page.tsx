@@ -111,7 +111,7 @@ function RemindersContent() {
       <div className="flex items-center gap-3">
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "rgba(245,158,11,0.15)" }}
+          style={{ background: "var(--color-primary-bg-strong)" }}
         >
           <Syringe size={16} style={{ color: "var(--color-primary)" }} />
         </div>
@@ -175,10 +175,12 @@ function RemindersContent() {
               onClick={() => setActiveTab(tab)}
               className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all relative"
               style={{
-                background: isActive ? "rgba(245,158,11,0.15)" : "transparent",
+                background: isActive
+                  ? "var(--color-primary-bg-strong)"
+                  : "transparent",
                 color: isActive ? "var(--color-primary)" : "var(--text-muted)",
                 border: isActive
-                  ? "1px solid rgba(245,158,11,0.25)"
+                  ? "1px solid var(--color-primary-border)"
                   : "1px solid transparent",
               }}
             >
@@ -227,14 +229,16 @@ function RemindersContent() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                     style={{
                       background:
-                        view === v ? "rgba(245,158,11,0.15)" : "transparent",
+                        view === v
+                          ? "var(--color-primary-bg-strong)"
+                          : "transparent",
                       color:
                         view === v
                           ? "var(--color-primary)"
                           : "var(--text-muted)",
                       border:
                         view === v
-                          ? "1px solid rgba(245,158,11,0.2)"
+                          ? "1px solid var(--color-primary-border)"
                           : "1px solid transparent",
                     }}
                   >
@@ -360,7 +364,7 @@ function RemindersContent() {
                           <span
                             className="ml-2 normal-case text-[10px] font-semibold px-2 py-0.5 rounded-full"
                             style={{
-                              background: "rgba(245,158,11,0.15)",
+                              background: "var(--color-primary-bg-strong)",
                               color: "var(--color-primary)",
                             }}
                           >
@@ -551,4 +555,3 @@ export default function RemindersPage() {
     </AppLayout>
   );
 }
-

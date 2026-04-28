@@ -156,7 +156,7 @@ export default function SharePage({
           <div className="flex items-center gap-4 mb-4">
             <div
               className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
-              style={{ background: "rgba(245,158,11,0.15)" }}
+              style={{ background: "var(--color-primary-bg-strong)" }}
             >
               {dog.photoUrl ? (
                 <Image
@@ -417,9 +417,9 @@ export default function SharePage({
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg"
                   style={{
-                    background: "rgba(245,158,11,0.1)",
+                    background: "var(--color-primary-bg)",
                     color: "var(--color-primary)",
-                    border: "1px solid rgba(245,158,11,0.2)",
+                    border: "1px solid var(--color-primary-border)",
                   }}
                 >
                   <Download size={13} /> Open
@@ -434,6 +434,7 @@ export default function SharePage({
               </div>
             </div>
             <div className="p-4 flex items-center justify-center max-h-[70vh] overflow-auto">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={previewUrl}
                 alt="Certificate"

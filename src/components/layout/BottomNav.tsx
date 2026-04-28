@@ -54,7 +54,7 @@ export default function BottomNav() {
               {isActive && (
                 <span
                   className="absolute inset-0 rounded-2xl"
-                  style={{ background: "rgba(13,148,136,0.1)" }}
+                  style={{ background: "var(--color-primary-bg)" }}
                 />
               )}
               <item.icon
