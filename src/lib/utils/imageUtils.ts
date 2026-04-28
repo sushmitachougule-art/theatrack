@@ -37,6 +37,11 @@ export async function compressImage(
     const img = new Image();
     const url = URL.createObjectURL(file);
 
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file); // Return original on load failure (e.g. HEIC)
+    };
+
     img.onload = () => {
       URL.revokeObjectURL(url);
 

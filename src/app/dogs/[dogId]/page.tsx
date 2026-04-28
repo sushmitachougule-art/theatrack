@@ -14,8 +14,16 @@ import {
   createVaccinationRecord,
   deleteVaccinationRecord,
   deleteDog,
+  createShareToken,
+  getDogShareTokens,
+  revokeShareToken,
 } from "@/lib/repositories";
-import { Dog, VaccinationFormData, VaccinationRecord } from "@/types";
+import {
+  Dog,
+  VaccinationFormData,
+  VaccinationRecord,
+  ShareToken,
+} from "@/types";
 import {
   getVaccinationStatus,
   formatDate,
@@ -36,11 +44,185 @@ import {
   X,
   Camera,
   Eye,
+  Pencil,
+  Share2,
+  Copy,
+  Link2,
+  RefreshCw,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+
+// ─── Share Modal ──────────────────────────────────────────────────────────
+function ShareModal({
+  dogId,
+  ownerId,
+  onClose,
+}: {
+  dogId: string;
+  ownerId: string;
+  onClose: () => void;
+}) {
+  const [tokens, setTokens] = useState<ShareToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  useEffect(() => {
+    getDogShareTokens(dogId).then((t) => {
+      setTokens(t);
+      setLoading(false);
+    });
+  }, [dogId]);
+
+  const handleGenerate = async () => {
+    try {
+      setGenerating(true);
+      const token = await createShareToken(dogId, ownerId);
+      const all = await getDogShareTokens(dogId);
+      setTokens(all);
+      // Auto-copy new link
+      const url = `${origin}/share/${token}`;
+      await navigator.clipboard.writeText(url);
+      setCopied(token);
+      setTimeout(() => setCopied(null), 3000);
+      toast.success("Link copied to clipboard!");
+    } catch {
+      toast.error("Failed to generate link");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopy = async (token: string) => {
+    await navigator.clipboard.writeText(`${origin}/share/${token}`);
+    setCopied(token);
+    setTimeout(() => setCopied(null), 2000);
+    toast.success("Copied!");
+  };
+
+  const handleRevoke = async (token: string) => {
+    if (!confirm("Revoke this link? Anyone with it will lose access.")) return;
+    await revokeShareToken(token);
+    setTokens((t) => t.filter((x) => x.id !== token));
+    toast.success("Link revoked");
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h2
+            className="text-lg font-semibold flex items-center gap-2"
+            style={{ color: "var(--text-primary)" }}
+          >
+            <Share2 size={18} style={{ color: "var(--color-primary)" }} />
+            Share Vaccination Record
+          </h2>
+          <button onClick={onClose} style={{ color: "var(--text-muted)" }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
+          Generate a read-only link valid for 30 days. Anyone with the link can
+          view vaccination records — no login required.
+        </p>
+
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="btn-primary w-full flex items-center justify-center gap-2 mb-5"
+        >
+          {generating ? (
+            <>
+              <RefreshCw size={14} className="animate-spin" /> Generating...
+            </>
+          ) : (
+            <>
+              <Link2 size={14} /> Generate New Link
+            </>
+          )}
+        </button>
+
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <div className="spinner" />
+          </div>
+        ) : tokens.length === 0 ? (
+          <p
+            className="text-center text-sm py-4"
+            style={{ color: "var(--text-muted)" }}
+          >
+            No active links yet
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <p
+              className="text-xs font-medium mb-2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Active links
+            </p>
+            {tokens.map((t) => {
+              const url = `${origin}/share/${t.id}`;
+              return (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-2 p-3 rounded-xl"
+                  style={{
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-color)",
+                  }}
+                >
+                  <p
+                    className="flex-1 text-xs truncate font-mono"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {url}
+                  </p>
+                  <button
+                    onClick={() => handleCopy(t.id)}
+                    className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                    style={{
+                      color:
+                        copied === t.id ? "#34d399" : "var(--color-primary)",
+                    }}
+                    title="Copy link"
+                  >
+                    {copied === t.id ? (
+                      <CheckCircle size={15} />
+                    ) : (
+                      <Copy size={15} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleRevoke(t.id)}
+                    className="flex-shrink-0 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                    style={{ color: "#f87171" }}
+                    title="Revoke link"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
+            <p
+              className="text-[10px] mt-2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Links expire 30 days after creation.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Certificate Preview Lightbox ─────────────────────────────────────────
 function CertificatePreviewModal({
@@ -170,6 +352,19 @@ function VaccinationModal({
     e.preventDefault();
     const selectedType = types.find((t) => t.id === form.vaccinationTypeId);
     if (!selectedType) return toast.error("Please select a vaccination type");
+    const today = new Date().toISOString().split("T")[0];
+    if (form.dateAdministered > today) {
+      return toast.error("Date administered cannot be in the future");
+    }
+    if (form.cost !== null && form.cost < 0) {
+      return toast.error("Cost cannot be negative");
+    }
+    if (
+      form.customIntervalDays !== null &&
+      (form.customIntervalDays < 1 || form.customIntervalDays > 3650)
+    ) {
+      return toast.error("Interval must be between 1 and 3650 days");
+    }
     try {
       setSubmitting(true);
       await createVaccinationRecord(
@@ -231,13 +426,14 @@ function VaccinationModal({
               })}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">Date Administered *</label>
               <input
                 type="date"
                 className="form-input"
                 value={form.dateAdministered}
+                max={new Date().toISOString().split("T")[0]}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, dateAdministered: e.target.value }))
                 }
@@ -248,6 +444,8 @@ function VaccinationModal({
               <label className="form-label">Custom Interval (days)</label>
               <input
                 type="number"
+                min="1"
+                max="3650"
                 className="form-input"
                 placeholder="Leave blank for default"
                 value={form.customIntervalDays || ""}
@@ -262,7 +460,7 @@ function VaccinationModal({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">Vet Name</label>
               <input
@@ -284,7 +482,7 @@ function VaccinationModal({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">Batch Number</label>
               <input
@@ -299,6 +497,7 @@ function VaccinationModal({
               <label className="form-label">Cost (₹)</label>
               <input
                 type="number"
+                min="0"
                 className="form-input"
                 value={form.cost || ""}
                 onChange={(e) =>
@@ -413,7 +612,6 @@ function VaccinationModal({
               ref={certInputRef}
               type="file"
               accept="image/*,application/pdf"
-              capture="environment"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -453,6 +651,7 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
   const [dog, setDog] = useState<Dog | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [certPreviewUrl, setCertPreviewUrl] = useState<string | null>(null);
   const { records, loading: recsLoading } = useVaccinationRecords(
     resolvedParams.dogId,
@@ -592,6 +791,18 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
             >
               <Download size={14} /> Export PDF
             </button>
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2"
+            >
+              <Share2 size={14} /> Share
+            </button>
+            <Link
+              href={`/dogs/${resolvedParams.dogId}/edit`}
+              className="btn-secondary flex items-center justify-center gap-2 text-sm px-3 py-2"
+            >
+              <Pencil size={14} /> Edit
+            </Link>
             <button
               onClick={handleDeleteDog}
               className="btn-danger flex items-center justify-center gap-2 text-sm px-3 py-2"
@@ -834,7 +1045,16 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
                 <div
                   key={r.id}
                   className="glass-card p-4"
-                  style={{ cursor: "default" }}
+                  style={{
+                    cursor: "default",
+                    borderLeft: `3px solid ${
+                      info.status === "green"
+                        ? "#34d399"
+                        : info.status === "yellow"
+                          ? "#fbbf24"
+                          : "#f87171"
+                    }`,
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -928,6 +1148,13 @@ function DogDetailContent({ params }: { params: Promise<{ dogId: string }> }) {
           dogId={resolvedParams.dogId}
           ownerId={user.uid}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {showShareModal && user && (
+        <ShareModal
+          dogId={resolvedParams.dogId}
+          ownerId={user.uid}
+          onClose={() => setShowShareModal(false)}
         />
       )}
       {certPreviewUrl && (

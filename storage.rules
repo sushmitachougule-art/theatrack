@@ -1,0 +1,49 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Authenticated user helper
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Owner check — first path segment after the folder name is the userId
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // Max upload size: 5 MB
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Only allow image content types
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Images or PDF (for vaccination certificates)
+    function isImageOrPdf() {
+      return request.resource.contentType.matches('image/.*') ||
+             request.resource.contentType == 'application/pdf';
+    }
+
+    // Dog photos: dogs/{userId}/{fileId}
+    match /dogs/{userId}/{fileId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId) && isValidSize() && isImage();
+    }
+
+    // Vaccination certificates: certificates/{userId}/{dogId}/{fileId}
+    match /certificates/{userId}/{dogId}/{fileId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId) && isValidSize() && isImageOrPdf();
+    }
+
+    // Health record attachments: health/{userId}/{dogId}/{fileId}
+    match /health/{userId}/{dogId}/{fileId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId) && isValidSize() && isImageOrPdf();
+    }
+  }
+}

@@ -2,12 +2,16 @@
 // PawShield — Vaccinations Hook (Real-time)
 // ============================================
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { VaccinationRecord, VaccinationType } from '@/types';
-import { subscribeToVaccinationRecords, subscribeToAllUserVaccinationRecords, subscribeToVaccinationTypes } from '@/lib/repositories';
-import { useAuth } from './useAuth';
+import { useState, useEffect } from "react";
+import { VaccinationRecord, VaccinationType } from "@/types";
+import {
+  subscribeToVaccinationRecords,
+  subscribeToAllUserVaccinationRecords,
+  subscribeToVaccinationTypes,
+} from "@/lib/repositories";
+import { useAuth } from "./useAuth";
 
 export function useVaccinationRecords(dogId?: string) {
   const { user } = useAuth();
@@ -18,9 +22,13 @@ export function useVaccinationRecords(dogId?: string) {
     let unsubscribe: () => void;
 
     if (dogId) {
-      unsubscribe = subscribeToVaccinationRecords(dogId, (updated) => setRecords(updated));
+      unsubscribe = subscribeToVaccinationRecords(dogId, user.uid, (updated) =>
+        setRecords(updated),
+      );
     } else {
-      unsubscribe = subscribeToAllUserVaccinationRecords(user.uid, (updated) => setRecords(updated));
+      unsubscribe = subscribeToAllUserVaccinationRecords(user.uid, (updated) =>
+        setRecords(updated),
+      );
     }
 
     return () => {
@@ -36,15 +44,22 @@ export function useVaccinationRecords(dogId?: string) {
 }
 
 export function useVaccinationTypes() {
+  const { user } = useAuth();
   const [types, setTypes] = useState<VaccinationType[] | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToVaccinationTypes((updated) => setTypes(updated));
-    return () => unsubscribe();
-  }, []);
+    if (!user) return;
+    const unsubscribe = subscribeToVaccinationTypes((updated) =>
+      setTypes(updated),
+    );
+    return () => {
+      unsubscribe();
+      setTypes(null);
+    };
+  }, [user]);
 
   return {
     types: types ?? [],
-    loading: types === null,
+    loading: user ? types === null : false,
   };
 }

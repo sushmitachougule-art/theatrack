@@ -231,3 +231,12 @@ export interface SystemNotification {
   createdAt: string;
   createdBy: string;
 }
+
+// --- Share Token ---
+export interface ShareToken {
+  id: string; // token = document id
+  dogId: string;
+  ownerId: string;
+  expiresAt: string; // ISO date — null means no expiry
+  createdAt: string;
+}

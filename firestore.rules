@@ -105,5 +105,12 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
+
+    // Share Tokens — owner creates/deletes, public can read (no auth needed for share links)
+    match /shareTokens/{token} {
+      allow read: if true;                    // public — token is the secret
+      allow create: if isAuth() && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.ownerId == request.auth.uid;
+    }
   }
 }

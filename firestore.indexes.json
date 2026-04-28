@@ -30,6 +30,14 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "dogId", "order": "ASCENDING" },
+        { "fieldPath": "ownerId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vaccinationRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dogId", "order": "ASCENDING" },
         { "fieldPath": "dateAdministered", "order": "DESCENDING" }
       ]
     },

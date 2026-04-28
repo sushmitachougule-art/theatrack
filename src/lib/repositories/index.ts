@@ -32,6 +32,7 @@ import {
   UserProfile,
   Feedback,
   SystemNotification,
+  ShareToken,
 } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { calculateNextDueDate, toISOString } from "@/lib/utils/dateUtils";
@@ -127,13 +128,20 @@ export function subscribeToDogs(
   callback: (dogs: Dog[]) => void,
 ): Unsubscribe {
   const q = query(collection(db, "dogs"), where("ownerId", "==", ownerId));
-  return onSnapshot(q, (snap) => {
-    const dogs = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as Dog)
-      .filter((d) => d.isActive !== false)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    callback(dogs);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const dogs = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as Dog)
+        .filter((d) => d.isActive !== false)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      callback(dogs);
+    },
+    (err) => {
+      if (err.code !== "permission-denied")
+        console.error("[subscribeToDogs]", err);
+    },
+  );
 }
 
 // =====================
@@ -161,16 +169,24 @@ export function subscribeToVaccinationTypes(
   callback: (types: VaccinationType[]) => void,
 ): Unsubscribe {
   const q = query(collection(db, "vaccinationTypes"));
-  return onSnapshot(q, (snap) => {
-    const types = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as VaccinationType)
-      .filter((t) => t.isActive !== false)
-      .sort(
-        (a, b) =>
-          a.category.localeCompare(b.category) || a.name.localeCompare(b.name),
-      );
-    callback(types);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const types = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as VaccinationType)
+        .filter((t) => t.isActive !== false)
+        .sort(
+          (a, b) =>
+            a.category.localeCompare(b.category) ||
+            a.name.localeCompare(b.name),
+        );
+      callback(types);
+    },
+    (err) => {
+      if (err.code !== "permission-denied")
+        console.error("[subscribeToVaccinationTypes]", err);
+    },
+  );
 }
 
 export async function seedVaccinationTypes(
@@ -260,18 +276,29 @@ export async function deleteVaccinationRecord(recordId: string): Promise<void> {
 
 export function subscribeToVaccinationRecords(
   dogId: string,
+  ownerId: string,
   callback: (records: VaccinationRecord[]) => void,
 ): Unsubscribe {
   const q = query(
     collection(db, "vaccinationRecords"),
     where("dogId", "==", dogId),
+    where("ownerId", "==", ownerId),
   );
-  return onSnapshot(q, (snap) => {
-    const records = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as VaccinationRecord)
-      .sort((a, b) => b.dateAdministered.localeCompare(a.dateAdministered));
-    callback(records);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const records = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as VaccinationRecord)
+        .sort((a, b) => b.dateAdministered.localeCompare(a.dateAdministered));
+      callback(records);
+    },
+    (err) => {
+      if (err.code !== "permission-denied")
+        console.error("[subscribeToVaccinationRecords]", err);
+      // Always resolve loading state so the spinner doesn't get stuck
+      callback([]);
+    },
+  );
 }
 
 export function subscribeToAllUserVaccinationRecords(
@@ -282,12 +309,19 @@ export function subscribeToAllUserVaccinationRecords(
     collection(db, "vaccinationRecords"),
     where("ownerId", "==", ownerId),
   );
-  return onSnapshot(q, (snap) => {
-    const records = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as VaccinationRecord)
-      .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate));
-    callback(records);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const records = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as VaccinationRecord)
+        .sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate));
+      callback(records);
+    },
+    (err) => {
+      if (err.code !== "permission-denied")
+        console.error("[subscribeToAllUserVaccinationRecords]", err);
+    },
+  );
 }
 
 // =====================
@@ -475,12 +509,19 @@ export function subscribeToActiveNotifications(
     where("isActive", "==", true),
     orderBy("createdAt", "desc"),
   );
-  return onSnapshot(q, (snap) => {
-    const notifications = snap.docs.map(
-      (d) => ({ id: d.id, ...d.data() }) as SystemNotification,
-    );
-    callback(notifications);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const notifications = snap.docs.map(
+        (d) => ({ id: d.id, ...d.data() }) as SystemNotification,
+      );
+      callback(notifications);
+    },
+    (err) => {
+      if (err.code !== "permission-denied")
+        console.error("[subscribeToActiveNotifications]", err);
+    },
+  );
 }
 
 export function subscribeToAllNotifications(
@@ -495,4 +536,64 @@ export function subscribeToAllNotifications(
       snap.docs.map((d) => ({ id: d.id, ...d.data() }) as SystemNotification),
     );
   });
+}
+
+// =====================
+// Share Token Repository
+// =====================
+
+const SHARE_EXPIRY_DAYS = 30;
+
+/**
+ * Create a new share token for a dog. Returns the token string (= doc id).
+ * Tokens expire after 30 days.
+ */
+export async function createShareToken(
+  dogId: string,
+  ownerId: string,
+): Promise<string> {
+  const token = uuidv4();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + SHARE_EXPIRY_DAYS);
+
+  await setDoc(doc(db, "shareTokens", token), {
+    id: token,
+    dogId,
+    ownerId,
+    expiresAt: expiresAt.toISOString(),
+    createdAt: toISOString(),
+  } satisfies ShareToken);
+
+  return token;
+}
+
+/**
+ * Get share token metadata. Returns null if not found or expired.
+ */
+export async function getShareToken(token: string): Promise<ShareToken | null> {
+  const snap = await getDoc(doc(db, "shareTokens", token));
+  if (!snap.exists()) return null;
+  const data = snap.data() as ShareToken;
+  if (new Date(data.expiresAt) < new Date()) return null; // expired
+  return data;
+}
+
+/**
+ * Delete a share token (revoke the link).
+ */
+export async function revokeShareToken(token: string): Promise<void> {
+  await deleteDoc(doc(db, "shareTokens", token));
+}
+
+/**
+ * Get all active (non-expired) share tokens for a dog.
+ */
+export async function getDogShareTokens(dogId: string): Promise<ShareToken[]> {
+  const snap = await getDocs(
+    query(collection(db, "shareTokens"), where("dogId", "==", dogId)),
+  );
+  const now = new Date();
+  return snap.docs
+    .map((d) => d.data() as ShareToken)
+    .filter((t) => new Date(t.expiresAt) > now);
 }

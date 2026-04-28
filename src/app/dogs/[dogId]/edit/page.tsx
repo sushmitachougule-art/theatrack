@@ -1,46 +1,88 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, use } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { createDog } from "@/lib/repositories";
-import { DogFormData, DogGender } from "@/types";
+import { getDog, updateDog } from "@/lib/repositories";
+import { Dog, DogFormData, DogGender } from "@/types";
 import { DOG_BREEDS } from "@/lib/data/vaccinationTypes";
 import { ArrowLeft, Camera, X } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
-const INITIAL: DogFormData = {
-  name: "",
-  breed: "",
-  dateOfBirth: "",
-  gender: "male" as DogGender,
-  weight: null,
-  color: "",
-  microchipNumber: "",
-  insuranceProvider: "",
-  insurancePolicyNumber: "",
-  insuranceExpiry: "",
-  emergencyVetName: "",
-  emergencyVetPhone: "",
-  notes: "",
-  photo: null,
-};
-
-function NewDogContent() {
+function EditDogContent({ params }: { params: Promise<{ dogId: string }> }) {
+  const { dogId } = use(params);
   const { user } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState<DogFormData>(INITIAL);
+
+  const [dog, setDog] = useState<Dog | null>(null);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const update = (field: keyof DogFormData, value: unknown) => {
+  const [form, setForm] = useState<DogFormData>({
+    name: "",
+    breed: "",
+    dateOfBirth: "",
+    gender: "male" as DogGender,
+    weight: null,
+    color: "",
+    microchipNumber: "",
+    insuranceProvider: "",
+    insurancePolicyNumber: "",
+    insuranceExpiry: "",
+    emergencyVetName: "",
+    emergencyVetPhone: "",
+    notes: "",
+    photo: null,
+  });
+
+  useEffect(() => {
+    getDog(dogId).then((d) => {
+      if (!d) {
+        toast.error("Dog not found");
+        router.push("/dogs");
+        return;
+      }
+      setDog(d);
+      setForm({
+        name: d.name,
+        breed: d.breed,
+        dateOfBirth: d.dateOfBirth,
+        gender: d.gender,
+        weight: d.weight,
+        color: d.color,
+        microchipNumber: d.microchipNumber,
+        insuranceProvider: d.insuranceProvider,
+        insurancePolicyNumber: d.insurancePolicyNumber,
+        insuranceExpiry: d.insuranceExpiry,
+        emergencyVetName: d.emergencyVetName,
+        emergencyVetPhone: d.emergencyVetPhone,
+        notes: d.notes,
+        photo: null,
+      });
+      // Show optional section if any optional field is filled
+      if (
+        d.microchipNumber ||
+        d.insuranceProvider ||
+        d.insurancePolicyNumber ||
+        d.insuranceExpiry ||
+        d.emergencyVetName ||
+        d.emergencyVetPhone ||
+        d.notes
+      ) {
+        setShowOptional(true);
+      }
+      setLoading(false);
+    });
+  }, [dogId, router]);
+
+  const update = (field: keyof DogFormData, value: unknown) =>
     setForm((p) => ({ ...p, [field]: value }));
-  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,7 +112,7 @@ function NewDogContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !dog) return;
     if (form.dateOfBirth > today) {
       toast.error("Date of birth cannot be in the future");
       return;
@@ -88,34 +130,44 @@ function NewDogContent() {
     }
     try {
       setSubmitting(true);
-      const id = await createDog(user.uid, form);
-      toast.success(`${form.name} has been added!`);
-      router.push(`/dogs/${id}`);
+      await updateDog(dogId, user.uid, form);
+      toast.success(`${form.name} updated!`);
+      router.push(`/dogs/${dogId}`);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to add dog");
+      toast.error(err instanceof Error ? err.message : "Failed to update dog");
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loading)
+    return (
+      <div className="flex justify-center py-20">
+        <div className="spinner" />
+      </div>
+    );
+
+  // Current photo: new preview takes priority, then existing photoUrl
+  const displayPhoto = photoPreview ?? dog?.photoUrl ?? null;
+
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
       <Link
-        href="/dogs"
+        href={`/dogs/${dogId}`}
         className="flex items-center gap-2 text-sm mb-6 hover:underline"
         style={{ color: "var(--text-muted)" }}
       >
-        <ArrowLeft size={16} /> Back to My Dogs
+        <ArrowLeft size={16} /> Back to {dog?.name}
       </Link>
 
       <h1
         className="text-2xl font-bold mb-1"
         style={{ color: "var(--text-primary)" }}
       >
-        Add New Dog
+        Edit {dog?.name}
       </h1>
       <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
-        Fill in your dog&apos;s information to start tracking.
+        Update your dog&apos;s information below.
       </p>
 
       <form
@@ -130,15 +182,15 @@ function NewDogContent() {
               className="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer border-2 border-dashed transition-all hover:border-amber-500/50 relative"
               style={{
                 background: "var(--bg-input)",
-                borderColor: photoPreview
+                borderColor: displayPhoto
                   ? "transparent"
                   : "var(--border-color)",
               }}
               onClick={() => photoInputRef.current?.click()}
             >
-              {photoPreview ? (
+              {displayPhoto ? (
                 <Image
-                  src={photoPreview}
+                  src={displayPhoto}
                   alt="Preview"
                   fill
                   className="object-cover"
@@ -155,7 +207,7 @@ function NewDogContent() {
                 </div>
               )}
             </div>
-            {photoPreview && (
+            {displayPhoto && (
               <button
                 type="button"
                 onClick={removePhoto}
@@ -175,7 +227,7 @@ function NewDogContent() {
             onChange={handlePhotoChange}
           />
           <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-            Tap to add a photo (max 5MB)
+            Tap to change photo (max 5MB)
           </p>
         </div>
 
@@ -254,7 +306,7 @@ function NewDogContent() {
               max="120"
               className="form-input"
               placeholder="e.g. 25"
-              value={form.weight || ""}
+              value={form.weight ?? ""}
               onChange={(e) =>
                 update(
                   "weight",
@@ -367,9 +419,9 @@ function NewDogContent() {
             disabled={submitting}
             className="btn-primary flex-1"
           >
-            {submitting ? "Adding..." : "🐾 Add Dog"}
+            {submitting ? "Saving..." : "Save Changes"}
           </button>
-          <Link href="/dogs" className="btn-secondary">
+          <Link href={`/dogs/${dogId}`} className="btn-secondary">
             Cancel
           </Link>
         </div>
@@ -378,10 +430,14 @@ function NewDogContent() {
   );
 }
 
-export default function NewDogPage() {
+export default function EditDogPage({
+  params,
+}: {
+  params: Promise<{ dogId: string }>;
+}) {
   return (
     <AppLayout>
-      <NewDogContent />
+      <EditDogContent params={params} />
     </AppLayout>
   );
 }
