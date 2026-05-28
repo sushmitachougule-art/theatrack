@@ -45,5 +45,11 @@ service firebase.storage {
       allow read: if isAuth();
       allow write: if isOwner(userId) && isValidSize() && isImageOrPdf();
     }
+
+    // Community post photos: community/{userId}/{fileId}
+    match /community/{userId}/{fileId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId) && isValidSize() && isImage();
+    }
   }
 }

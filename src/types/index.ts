@@ -15,6 +15,9 @@ export interface UserProfile {
   plan: UserPlan;
   settings: UserSettings;
   fcmTokens?: string[];
+  streakCount?: number;
+  streakLastDate?: string;
+  longestStreak?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -240,5 +243,234 @@ export interface ShareToken {
   dogId: string;
   ownerId: string;
   expiresAt: string; // ISO date — null means no expiry
+  createdAt: string;
+}
+
+// --- Daily Health Journal ---
+export type JournalMood = "happy" | "neutral" | "sad" | "sleepy" | "sick";
+export type JournalEnergy = "low" | "medium" | "high";
+export type JournalAppetite = "poor" | "normal" | "excessive";
+export type JournalPoop = "normal" | "soft" | "concerning";
+
+export interface DailyJournal {
+  id: string;
+  dogId: string;
+  ownerId: string;
+  date: string; // ISO date (YYYY-MM-DD) — one per dog per day
+  mood: JournalMood;
+  energy: JournalEnergy;
+  appetite: JournalAppetite;
+  poop: JournalPoop;
+  notes: string; // max 200 chars
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Walk Log ---
+export type WalkMood = "happy" | "tired" | "hyper" | "same";
+
+export interface WalkLog {
+  id: string;
+  dogId: string;
+  ownerId: string;
+  date: string; // ISO date
+  startTime: string; // ISO datetime
+  durationMinutes: number;
+  distanceKm: number | null; // optional manual entry
+  moodAfter: WalkMood;
+  notes: string; // max 200 chars
+  createdAt: string;
+}
+
+// --- Community ---
+export interface CommunityPost {
+  id: string;
+  authorId: string;
+  authorName: string; // denormalized
+  authorPhotoUrl: string | null; // denormalized (dog photo)
+  dogId: string;
+  dogName: string; // denormalized
+  dogBreed: string; // denormalized
+  photoUrl: string; // required — compressed to 800px max
+  caption: string; // max 280 chars
+  tags: string[]; // hashtags without #
+  likeCount: number; // denormalized counter
+  commentCount: number; // denormalized counter
+  likedBy: string[]; // userId array (for checking if current user liked)
+  isActive: boolean; // soft delete by admin
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string; // denormalized
+  text: string; // max 280 chars
+  createdAt: string;
+}
+
+export type ReportReason = "spam" | "inappropriate" | "harassment" | "other";
+
+export interface Report {
+  id: string;
+  postId: string;
+  reporterId: string;
+  reason: ReportReason;
+  details: string;
+  status: "new" | "reviewed" | "dismissed";
+  createdAt: string;
+}
+
+// --- Training ---
+export type TrainingCategory =
+  | "basics"
+  | "manners"
+  | "tricks"
+  | "safety"
+  | "social";
+export type TrainingDifficulty = "beginner" | "intermediate" | "advanced";
+
+export interface TrainingStep {
+  id: string;
+  title: string;
+  description: string;
+  tipText: string;
+  estimatedMinutes: number;
+}
+
+export interface TrainingModule {
+  id: string;
+  title: string;
+  description: string;
+  category: TrainingCategory;
+  difficulty: TrainingDifficulty;
+  icon: string; // emoji
+  steps: TrainingStep[];
+  estimatedMinutes: number; // total
+}
+
+export interface TrainingProgress {
+  id: string;
+  ownerId: string;
+  dogId: string;
+  moduleId: string;
+  completedStepIds: string[];
+  startedAt: string;
+  completedAt: string | null; // null = in progress
+}
+
+export interface WeeklyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string; // emoji
+  goal: string; // e.g. "Practice 'sit' 5 times this week"
+  targetCount: number;
+  startDate: string; // ISO date (Monday)
+  endDate: string; // ISO date (Sunday)
+  isActive: boolean;
+}
+
+export interface ChallengeEntry {
+  id: string;
+  ownerId: string;
+  dogId: string;
+  challengeId: string;
+  progress: number; // current count toward targetCount
+  joinedAt: string;
+  completedAt: string | null;
+}
+
+// --- Expenses ---
+export type ExpenseCategory =
+  | "vet"
+  | "food"
+  | "toys"
+  | "grooming"
+  | "insurance"
+  | "training"
+  | "accessories"
+  | "boarding"
+  | "other";
+
+export interface Expense {
+  id: string;
+  ownerId: string;
+  dogId: string;
+  dogName: string; // denormalized for display
+  category: ExpenseCategory;
+  amount: number; // in user's currency (stored as cents/paise for precision)
+  currency: string; // ISO 4217 (e.g. "INR", "USD")
+  description: string;
+  date: string; // ISO date
+  createdAt: string;
+}
+
+export interface ExpenseSummary {
+  totalAmount: number;
+  byCategory: Record<ExpenseCategory, number>;
+  byMonth: Record<string, number>; // "2026-05" → total
+}
+
+// --- Walk GPS ---
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+  timestamp: number; // epoch ms
+  accuracy: number; // meters
+}
+
+export interface WalkRoute {
+  id: string;
+  walkLogId: string;
+  ownerId: string;
+  points: GeoPoint[];
+  distanceMeters: number; // calculated from points
+  createdAt: string;
+}
+
+// --- Playdate Requests ---
+export type PlaydateStatus = "pending" | "accepted" | "declined" | "cancelled";
+
+export interface PlaydateRequest {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  fromDogName: string;
+  fromDogBreed: string;
+  toUserId: string;
+  toUserName: string;
+  toDogName: string;
+  toDogBreed: string;
+  location: string; // park name or address
+  proposedDate: string; // ISO date
+  proposedTime: string; // e.g. "10:00 AM"
+  message: string; // short note (max 140 chars)
+  status: PlaydateStatus;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+// --- Lightweight Chat / DMs ---
+export interface ChatThread {
+  id: string;
+  participants: string[]; // exactly 2 user IDs
+  participantNames: Record<string, string>; // uid → displayName
+  participantAvatars: Record<string, string | null>; // uid → photoUrl
+  lastMessage: string;
+  lastMessageAt: string;
+  lastSenderId: string;
+  unreadCount: Record<string, number>; // uid → unread count
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  threadId: string;
+  senderId: string;
+  senderName: string;
+  text: string; // max 500 chars
   createdAt: string;
 }

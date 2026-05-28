@@ -3,26 +3,34 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Dog, Settings, Shield } from "lucide-react";
+import {
+  LayoutDashboard,
+  Dog,
+  Activity,
+  MessageCircle,
+  Settings,
+  Shield,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 // Mobile bottom nav — Reminders lives in the top bell icon on mobile
 const BASE_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/messages", label: "Chat", icon: MessageCircle },
   { href: "/dogs", label: "Dogs", icon: Dog },
+  { href: "/settings", label: "More", icon: Settings },
 ];
 const ADMIN_TAB = { href: "/admin", label: "Admin", icon: Shield };
-const SETTINGS_TAB = { href: "/settings", label: "Settings", icon: Settings };
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
 
-  // Admin gets 4 tabs: Dashboard · Dogs · Admin · Settings
-  // Regular users get 3 tabs: Dashboard · Dogs · Settings
+  // Admin gets admin tab inserted before Settings
   const navItems = isAdmin
-    ? [...BASE_ITEMS, ADMIN_TAB, SETTINGS_TAB]
-    : [...BASE_ITEMS, SETTINGS_TAB];
+    ? [...BASE_ITEMS.slice(0, -1), ADMIN_TAB, BASE_ITEMS[BASE_ITEMS.length - 1]]
+    : BASE_ITEMS;
 
   return (
     <nav

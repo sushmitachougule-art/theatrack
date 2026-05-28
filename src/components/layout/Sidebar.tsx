@@ -7,6 +7,10 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Dog,
+  Activity,
+  GraduationCap,
+  Wallet,
+  MessageCircle,
   Bell,
   Settings,
   Shield,
@@ -23,6 +27,10 @@ import { useFCM } from "@/hooks/useFCM";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dogs", label: "My Dogs", icon: Dog },
+  { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/training", label: "Training", icon: GraduationCap },
+  { href: "/expenses", label: "Expenses", icon: Wallet },
+  { href: "/messages", label: "Messages", icon: MessageCircle },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

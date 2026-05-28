@@ -9,12 +9,26 @@ interface CompressOptions {
   maxHeightPx?: number; // default 800
   quality?: number; // 0–1, default 0.75
   maxSizeBytes?: number; // default 300 KB
+  preferWebP?: boolean; // default true — uses WebP when browser supports it
+}
+
+/** Check if browser supports WebP encoding via canvas */
+function supportsWebP(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    return canvas.toDataURL("image/webp").startsWith("data:image/webp");
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Compress an image File using the browser Canvas API.
  * Returns the original file unchanged if it's already small
  * or if it's a PDF (Canvas cannot compress PDFs).
+ * Prefers WebP format (30-40% smaller than JPEG) when supported.
  */
 export async function compressImage(
   file: File,
@@ -25,6 +39,7 @@ export async function compressImage(
     maxHeightPx = 800,
     quality = 0.75,
     maxSizeBytes = 300 * 1024, // 300 KB
+    preferWebP = true,
   } = options;
 
   // Don't compress PDFs or non-image files
@@ -33,14 +48,13 @@ export async function compressImage(
   // Already small enough
   if (file.size <= maxSizeBytes) return file;
 
-  return new Promise((resolve, reject) => {
+  const useWebP = preferWebP && supportsWebP();
+  const mimeType = useWebP ? "image/webp" : "image/jpeg";
+  const ext = useWebP ? ".webp" : ".jpg";
+
+  return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(file); // Return original on load failure (e.g. HEIC)
-    };
 
     img.onload = () => {
       URL.revokeObjectURL(url);
@@ -72,21 +86,22 @@ export async function compressImage(
             resolve(file);
             return;
           }
-          const compressed = new File([blob], file.name, {
-            type: "image/jpeg",
+          const name = file.name.replace(/\.[^.]+$/, ext);
+          const compressed = new File([blob], name, {
+            type: mimeType,
             lastModified: Date.now(),
           });
           // If compression made it bigger somehow, keep original
           resolve(compressed.size < file.size ? compressed : file);
         },
-        "image/jpeg",
+        mimeType,
         quality,
       );
     };
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("Failed to load image"));
+      resolve(file); // Return original on load failure (e.g. HEIC)
     };
     img.src = url;
   });
