@@ -4,11 +4,15 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, MessageSquarePlus } from "lucide-react";
 import { useVaccinationRecords } from "@/hooks/useVaccinations";
 import { getVaccinationStatus } from "@/lib/utils/dateUtils";
 
-export default function PWAHeader() {
+interface PWAHeaderProps {
+  onFeedbackOpen?: () => void;
+}
+
+export default function PWAHeader({ onFeedbackOpen }: PWAHeaderProps) {
   const pathname = usePathname();
   const { records } = useVaccinationRecords();
 
@@ -45,30 +49,44 @@ export default function PWAHeader() {
         <span className="font-bold text-sm text-gradient">PawShield</span>
       </div>
 
-      {/* Bell / Reminders */}
-      <Link
-        href="/reminders"
-        className="relative p-2.5 rounded-xl transition-all"
-        style={{
-          background: isRemindersActive
-            ? "var(--color-primary-bg-hover)"
-            : "transparent",
-          color: isRemindersActive
-            ? "var(--color-primary)"
-            : "var(--text-muted)",
-        }}
-        aria-label="Reminders"
-      >
-        <Bell size={22} strokeWidth={isRemindersActive ? 2.5 : 1.8} />
-        {alertCount > 0 && (
-          <span
-            className="absolute top-1.5 right-1.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-1 leading-none"
-            style={{ background: "#ef4444", color: "white" }}
+      {/* Right icons: Feedback + Bell */}
+      <div className="flex items-center gap-1">
+        {onFeedbackOpen && (
+          <button
+            onClick={onFeedbackOpen}
+            className="p-2.5 rounded-xl transition-all"
+            style={{
+              color: "var(--color-primary)",
+            }}
+            aria-label="Send Feedback"
           >
-            {alertCount > 9 ? "9+" : alertCount}
-          </span>
+            <MessageSquarePlus size={22} strokeWidth={1.8} />
+          </button>
         )}
-      </Link>
+        <Link
+          href="/reminders"
+          className="relative p-2.5 rounded-xl transition-all"
+          style={{
+            background: isRemindersActive
+              ? "var(--color-primary-bg-hover)"
+              : "transparent",
+            color: isRemindersActive
+              ? "var(--color-primary)"
+              : "var(--text-muted)",
+          }}
+          aria-label="Reminders"
+        >
+          <Bell size={22} strokeWidth={isRemindersActive ? 2.5 : 1.8} />
+          {alertCount > 0 && (
+            <span
+              className="absolute top-1.5 right-1.5 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold px-1 leading-none"
+              style={{ background: "#ef4444", color: "white" }}
+            >
+              {alertCount > 9 ? "9+" : alertCount}
+            </span>
+          )}
+        </Link>
+      </div>
     </header>
   );
 }

@@ -2,12 +2,23 @@
 // PawShield — Auth Context & Hook
 // ============================================
 
-'use client';
+"use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User } from 'firebase/auth';
-import { onAuthChange, getUserProfile, signOut } from '@/lib/firebase/auth';
-import { UserProfile } from '@/types';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { User } from "firebase/auth";
+import {
+  onAuthChange,
+  getUserProfile,
+  signOut,
+  ensureUserProfile,
+} from "@/lib/firebase/auth";
+import { UserProfile } from "@/types";
 
 interface AuthContextType {
   user: User | null;
@@ -43,6 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
+        // Safety net: make sure a profile doc exists for this user. This
+        // covers legacy accounts and any sign-in path that forgot to call it.
+        try {
+          await ensureUserProfile(firebaseUser);
+        } catch (err) {
+          console.error("ensureUserProfile failed:", err);
+        }
         const p = await getUserProfile(firebaseUser.uid);
         setProfile(p);
       } else {
@@ -59,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, []);
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === "admin";
 
   return (
     <AuthContext.Provider
@@ -73,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

@@ -210,5 +210,24 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.senderId == request.auth.uid;
     }
+
+    // App Config (feature flags) — all auth can read, admin can write
+    match /appConfig/{configId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Analytics Events (batched) — any auth user can create, admin reads
+    match /analytics_batches/{batchId} {
+      allow create: if isAuth();
+      allow read: if isAdmin();
+    }
+
+    // Analytics Sessions — auth creates/updates own, admin reads all
+    match /analytics_sessions/{sessionId} {
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+    }
   }
 }

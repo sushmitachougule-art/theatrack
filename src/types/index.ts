@@ -474,3 +474,82 @@ export interface ChatMessage {
   text: string; // max 500 chars
   createdAt: string;
 }
+
+// --- Feature Flags ---
+export interface FeatureFlags {
+  // Section visibility
+  activityJournal: boolean;
+  activityWalks: boolean;
+  activityCommunity: boolean;
+  activityPlaydates: boolean;
+  training: boolean;
+  expenses: boolean;
+  messages: boolean;
+
+  // Auth controls
+  demoLoginEnabled: boolean;
+  registrationEnabled: boolean;
+
+  // Feature-specific
+  gpsTracking: boolean;
+  communityPhotos: boolean;
+  pushNotifications: boolean;
+
+  // Maintenance mode
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+
+  // Metadata
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
+  activityJournal: true,
+  activityWalks: true,
+  activityCommunity: true,
+  activityPlaydates: true,
+  training: true,
+  expenses: true,
+  messages: true,
+  demoLoginEnabled: true,
+  registrationEnabled: true,
+  gpsTracking: true,
+  communityPhotos: true,
+  pushNotifications: true,
+  maintenanceMode: false,
+  maintenanceMessage: "",
+  updatedAt: "",
+  updatedBy: "",
+};
+
+// --- Analytics ---
+export interface AnalyticsEvent {
+  id?: string;
+  userId: string;
+  sessionId: string;
+  event: string;
+  category: string;
+  label?: string;
+  value?: number;
+  metadata?: Record<string, string | number | boolean>;
+  page: string;
+  timestamp: string;
+  deviceType: "mobile" | "tablet" | "desktop";
+  isDemo: boolean;
+}
+
+export interface SessionAnalytics {
+  id?: string;
+  userId: string;
+  sessionId: string;
+  startedAt: string;
+  endedAt?: string;
+  duration?: number;
+  pageViews: number;
+  interactions: number;
+  pages: string[];
+  deviceType: "mobile" | "tablet" | "desktop";
+  isDemo: boolean;
+  isPWA: boolean;
+}

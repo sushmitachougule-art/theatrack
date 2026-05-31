@@ -6,9 +6,13 @@ import { Send } from "lucide-react";
 
 interface CommentSectionProps {
   postId: string;
+  onCommentAdded?: () => void;
 }
 
-export function CommentSection({ postId }: CommentSectionProps) {
+export function CommentSection({
+  postId,
+  onCommentAdded,
+}: CommentSectionProps) {
   const { comments, submitting, postComment } = useComments(postId);
   const [text, setText] = useState("");
 
@@ -17,14 +21,18 @@ export function CommentSection({ postId }: CommentSectionProps) {
     if (!text.trim()) return;
     await postComment(text);
     setText("");
+    onCommentAdded?.();
   };
 
   return (
     <div className="comments-section">
       {comments.length > 0 && (
         <div className="comments-section__list">
-          {comments.map((c) => (
-            <div key={c.id} className="comments-section__item">
+          {comments.map((c, idx) => (
+            <div
+              key={c.id || `comment-${idx}`}
+              className="comments-section__item"
+            >
               <span className="comments-section__author">{c.authorName}</span>
               <span className="comments-section__text">{c.text}</span>
             </div>

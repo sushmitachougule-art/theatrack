@@ -62,6 +62,9 @@ export async function signInWithEmail(
   password: string,
 ): Promise<User> {
   const result = await signInWithEmailAndPassword(auth, email, password);
+  // Safety net: create a profile doc if it's missing (e.g. accounts created
+  // outside the register flow or with a corrupted profile state).
+  await ensureUserProfile(result.user);
   return result.user;
 }
 
@@ -130,7 +133,7 @@ export async function updateDisplayName(
 }
 
 // --- Create user profile in Firestore if it doesn't exist ---
-async function ensureUserProfile(user: User): Promise<void> {
+export async function ensureUserProfile(user: User): Promise<void> {
   const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
 

@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { CommunityPost } from "@/types";
 import { Heart, MessageCircle, Trash2, Flag, Send } from "lucide-react";
-import { useState } from "react";
 import { CommentSection } from "./CommentSection";
 
 interface PostCardProps {
@@ -24,8 +24,46 @@ export function PostCard({
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
+  const [optimisticCount, setOptimisticCount] = useState<number | null>(null);
+  const [optimisticCommentBump, setOptimisticCommentBump] = useState(0);
+  // Track last server-synced values so we can reset optimistic state during render
+  const [lastSyncedLikeCount, setLastSyncedLikeCount] = useState(
+    post.likeCount,
+  );
+  const [lastSyncedLikedBy, setLastSyncedLikedBy] = useState(post.likedBy);
+  const [lastSyncedCommentCount, setLastSyncedCommentCount] = useState(
+    post.commentCount,
+  );
+
+  // Reset optimistic state during render when server data changes (React 19 pattern)
+  if (
+    post.likeCount !== lastSyncedLikeCount ||
+    post.likedBy !== lastSyncedLikedBy
+  ) {
+    setLastSyncedLikeCount(post.likeCount);
+    setLastSyncedLikedBy(post.likedBy);
+    setOptimisticLiked(null);
+    setOptimisticCount(null);
+  }
+  if (post.commentCount !== lastSyncedCommentCount) {
+    setLastSyncedCommentCount(post.commentCount);
+    setOptimisticCommentBump(0);
+  }
+
   const isOwner = post.authorId === currentUserId;
-  const isLiked = post.likedBy.includes(currentUserId);
+  const isLiked = optimisticLiked ?? post.likedBy.includes(currentUserId);
+  const likeCount = optimisticCount ?? (post.likeCount || 0);
+  const commentCount = (post.commentCount || 0) + optimisticCommentBump;
+
+  const handleLike = () => {
+    const willLike = !isLiked;
+    setOptimisticLiked(willLike);
+    setOptimisticCount(
+      willLike ? post.likeCount + 1 : Math.max(0, post.likeCount - 1),
+    );
+    onLike(post.id);
+  };
 
   const timeAgo = getTimeAgo(post.createdAt);
 
@@ -79,17 +117,21 @@ export function PostCard({
       <div className="post-card__actions">
         <button
           className={`post-card__action ${isLiked ? "post-card__action--liked" : ""}`}
-          onClick={() => onLike(post.id)}
+          onClick={handleLike}
+          aria-label={`${isLiked ? "Unlike" : "Like"} post by ${post.authorName}`}
+          aria-pressed={isLiked}
         >
           <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
-          <span>{post.likeCount}</span>
+          <span>{likeCount}</span>
         </button>
         <button
           className="post-card__action"
           onClick={() => setShowComments(!showComments)}
+          aria-label={`${showComments ? "Hide" : "Show"} ${commentCount} comments`}
+          aria-expanded={showComments}
         >
           <MessageCircle size={18} />
-          <span>{post.commentCount}</span>
+          <span>{commentCount}</span>
         </button>
         <div className="post-card__actions-right">
           {!isOwner && onMessage && (
@@ -119,7 +161,12 @@ export function PostCard({
         </div>
       </div>
 
-      {showComments && <CommentSection postId={post.id} />}
+      {showComments && (
+        <CommentSection
+          postId={post.id}
+          onCommentAdded={() => setOptimisticCommentBump((n) => n + 1)}
+        />
+      )}
     </article>
   );
 }

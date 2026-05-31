@@ -50,6 +50,8 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { FeatureFlagsTab } from "@/components/admin/FeatureFlagsTab";
+import { AnalyticsTab } from "@/components/admin/AnalyticsTab";
 
 type Tab =
   | "overview"
@@ -57,7 +59,9 @@ type Tab =
   | "vaccinations"
   | "feedback"
   | "notifications"
-  | "logs";
+  | "logs"
+  | "flags"
+  | "analytics";
 
 function AdminContent() {
   const { isAdmin, profile } = useAuth();
@@ -278,7 +282,9 @@ function AdminContent() {
     { key: "vaccinations", label: "Vaccines", icon: Syringe },
     { key: "feedback", label: "Feedback", icon: MessageSquare },
     { key: "notifications", label: "Alerts", icon: BellRing },
-    { key: "logs", label: "Audit Logs", icon: Shield },
+    { key: "logs", label: "Logs", icon: Shield },
+    { key: "flags", label: "Flags", icon: Database },
+    { key: "analytics", label: "Analytics", icon: BarChart3 },
   ];
 
   return (
@@ -298,7 +304,7 @@ function AdminContent() {
 
       {/* Tabs */}
       <div
-        className="flex gap-1 p-1 rounded-xl"
+        className="flex gap-1 p-1 rounded-xl overflow-x-auto"
         style={{
           background: "var(--bg-secondary)",
           border: "1px solid var(--border-color)",
@@ -308,7 +314,7 @@ function AdminContent() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all flex-1 justify-center"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
             style={{
               background:
                 tab === t.key
@@ -1546,6 +1552,12 @@ function AdminContent() {
           )}
         </div>
       )}
+
+      {/* ==================== FLAGS ==================== */}
+      {tab === "flags" && <FeatureFlagsTab />}
+
+      {/* ==================== ANALYTICS ==================== */}
+      {tab === "analytics" && <AnalyticsTab />}
     </div>
   );
 }

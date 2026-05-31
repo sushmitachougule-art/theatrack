@@ -11,6 +11,7 @@ import {
   getAuthErrorMessage,
 } from "@/lib/firebase/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import toast from "react-hot-toast";
 import { ArrowRight, Mail, Lock, User } from "lucide-react";
 import { seedDemoAccount } from "@/lib/seed";
@@ -18,6 +19,7 @@ import { seedDemoAccount } from "@/lib/seed";
 export default function LoginPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const flags = useFeatureFlags();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -148,6 +150,7 @@ export default function LoginPage() {
               onClick={handleDemoLogin}
               disabled={submitting}
               className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border transition-all duration-300 group mt-3 bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20"
+              style={{ display: flags.demoLoginEnabled ? undefined : "none" }}
             >
               Try Demo Mode
               <ArrowRight
@@ -258,12 +261,14 @@ export default function LoginPage() {
             {mode === "login"
               ? "Don't have an account? "
               : "Already have an account? "}
-            <button
-              onClick={() => setMode(mode === "login" ? "register" : "login")}
-              className="font-bold text-amber-500 hover:text-amber-400 transition-colors"
-            >
-              {mode === "login" ? "Sign Up" : "Sign In"}
-            </button>
+            {(mode === "register" || flags.registrationEnabled) && (
+              <button
+                onClick={() => setMode(mode === "login" ? "register" : "login")}
+                className="font-bold text-amber-500 hover:text-amber-400 transition-colors"
+              >
+                {mode === "login" ? "Sign Up" : "Sign In"}
+              </button>
+            )}
           </p>
 
           <p className="text-center text-xs mt-6 text-slate-500">

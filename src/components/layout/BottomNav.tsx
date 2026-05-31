@@ -12,25 +12,43 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 
 // Mobile bottom nav — Reminders lives in the top bell icon on mobile
 const BASE_ITEMS = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/messages", label: "Chat", icon: MessageCircle },
-  { href: "/dogs", label: "Dogs", icon: Dog },
-  { href: "/settings", label: "More", icon: Settings },
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard, flag: null },
+  { href: "/activity", label: "Activity", icon: Activity, flag: null },
+  {
+    href: "/messages",
+    label: "Chat",
+    icon: MessageCircle,
+    flag: "messages" as const,
+  },
+  { href: "/dogs", label: "Dogs", icon: Dog, flag: null },
+  { href: "/settings", label: "More", icon: Settings, flag: null },
 ];
-const ADMIN_TAB = { href: "/admin", label: "Admin", icon: Shield };
+const ADMIN_TAB = { href: "/admin", label: "Admin", icon: Shield, flag: null };
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
+  const flags = useFeatureFlags();
+
+  // Filter by feature flags
+  const filteredItems = BASE_ITEMS.filter(
+    (item) => !item.flag || flags[item.flag],
+  );
 
   // Admin gets admin tab inserted before Settings
   const navItems = isAdmin
-    ? [...BASE_ITEMS.slice(0, -1), ADMIN_TAB, BASE_ITEMS[BASE_ITEMS.length - 1]]
-    : BASE_ITEMS;
+    ? [
+        ...filteredItems.slice(0, -1),
+        ADMIN_TAB,
+        filteredItems[filteredItems.length - 1],
+      ]
+    : filteredItems;
+
+  const itemPadding = navItems.length > 5 ? "px-2" : "px-5";
 
   return (
     <nav
@@ -53,7 +71,8 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 py-1.5 px-5 rounded-2xl transition-all duration-200 relative"
+              aria-current={isActive ? "page" : undefined}
+              className={`flex flex-col items-center gap-1 py-1.5 ${itemPadding} rounded-2xl transition-all duration-200 relative`}
               style={{
                 color: isActive ? "var(--color-primary)" : "var(--text-muted)",
               }}

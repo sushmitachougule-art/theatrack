@@ -1,5 +1,11 @@
 "use client";
 
+declare global {
+  interface Window {
+    __openFeedback?: () => void;
+  }
+}
+
 import React, { useState, useEffect } from "react";
 import {
   MessageSquarePlus,
@@ -49,6 +55,14 @@ export default function FeedbackOverlay() {
     return () => unsub();
   }, [user]);
 
+  // Expose open function for external triggers (e.g. mobile header)
+  useEffect(() => {
+    window.__openFeedback = () => setIsOpen(true);
+    return () => {
+      delete window.__openFeedback;
+    };
+  }, []);
+
   if (!user) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +89,7 @@ export default function FeedbackOverlay() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 z-50 animate-pulse-glow"
+        className="hidden md:flex fixed bottom-6 right-6 w-14 h-14 rounded-full items-center justify-center shadow-lg transition-transform hover:scale-110 z-50 animate-pulse-glow"
         style={{ background: "var(--color-primary)", color: "white" }}
         title="Send Feedback"
       >

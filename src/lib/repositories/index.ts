@@ -897,14 +897,12 @@ export async function togglePostLike(
     await updateDoc(postRef, {
       likedBy: post.likedBy.filter((id) => id !== userId),
       likeCount: Math.max(0, post.likeCount - 1),
-      updatedAt: toISOString(),
     });
     return false;
   } else {
     await updateDoc(postRef, {
       likedBy: [...post.likedBy, userId],
       likeCount: post.likeCount + 1,
-      updatedAt: toISOString(),
     });
     return true;
   }
@@ -947,25 +945,22 @@ export function subscribeToCommunityPosts(
 export async function addComment(
   data: Omit<CommunityComment, "id" | "createdAt">,
 ): Promise<string> {
+  // Pre-generate ID so the first snapshot already has the correct key
+  const commentRef = doc(collection(db, "communityComments"));
   const commentData = {
     ...data,
-    id: "",
+    id: commentRef.id,
     createdAt: toISOString(),
   };
-  const commentRef = await addDoc(
-    collection(db, "communityComments"),
-    commentData,
-  );
-  await updateDoc(commentRef, { id: commentRef.id });
+  await setDoc(commentRef, commentData);
 
-  // Increment comment count on post
+  // Increment comment count on post (only commentCount — must match firestore.rules)
   const postRef = doc(db, "communityPosts", data.postId);
   const postSnap = await getDoc(postRef);
   if (postSnap.exists()) {
     const post = postSnap.data() as CommunityPost;
     await updateDoc(postRef, {
-      commentCount: post.commentCount + 1,
-      updatedAt: toISOString(),
+      commentCount: (post.commentCount || 0) + 1,
     });
   }
 

@@ -23,14 +23,31 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useFCM } from "@/hooks/useFCM";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { FeatureFlags } from "@/types";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  flag?: keyof FeatureFlags;
+}[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dogs", label: "My Dogs", icon: Dog },
   { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/training", label: "Training", icon: GraduationCap },
-  { href: "/expenses", label: "Expenses", icon: Wallet },
-  { href: "/messages", label: "Messages", icon: MessageCircle },
+  {
+    href: "/training",
+    label: "Training",
+    icon: GraduationCap,
+    flag: "training",
+  },
+  { href: "/expenses", label: "Expenses", icon: Wallet, flag: "expenses" },
+  {
+    href: "/messages",
+    label: "Messages",
+    icon: MessageCircle,
+    flag: "messages",
+  },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -40,6 +57,7 @@ const ADMIN_ITEMS = [{ href: "/admin", label: "Admin Panel", icon: Shield }];
 export default function Sidebar() {
   const pathname = usePathname();
   const { profile, logout, isAdmin } = useAuth();
+  const flags = useFeatureFlags();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isInstallable, promptInstall } = usePWAInstall();
   const { notificationPermissionStatus, requestPermission } = useFCM();
@@ -125,24 +143,26 @@ export default function Sidebar() {
           >
             Menu
           </p>
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={`sidebar-link ${isActive ? "active" : ""}`}
-              >
-                <item.icon size={18} />
-                {item.label}
-                {item.href === "/reminders" && (
-                  <span className="notification-dot ml-auto" />
-                )}
-              </Link>
-            );
-          })}
+          {NAV_ITEMS.filter((item) => !item.flag || flags[item.flag]).map(
+            (item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`sidebar-link ${isActive ? "active" : ""}`}
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                  {item.href === "/reminders" && (
+                    <span className="notification-dot ml-auto" />
+                  )}
+                </Link>
+              );
+            },
+          )}
 
           {isAdmin && (
             <>

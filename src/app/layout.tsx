@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { FeatureFlagProvider } from "@/hooks/useFeatureFlags";
 import { ThemedToaster } from "@/components/layout/ThemedToaster";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -81,10 +82,12 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <AuthProvider>
-          <ThemeProvider>
-            {children}
-            <ThemedToaster />
-          </ThemeProvider>
+          <FeatureFlagProvider>
+            <ThemeProvider>
+              {children}
+              <ThemedToaster />
+            </ThemeProvider>
+          </FeatureFlagProvider>
         </AuthProvider>
       </body>
     </html>
